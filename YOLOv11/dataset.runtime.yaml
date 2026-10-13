@@ -1,0 +1,18 @@
+# Sortify Unified 10-Class YOLOv11 Dataset
+path: C:/Code/Sortify-ML/Dataset
+train: images/train
+val: images/val
+test: images/test
+
+nc: 10
+names:
+  0: paper
+  1: cardboard
+  2: glass
+  3: metal
+  4: plastic_bottle
+  5: plastic_bag
+  6: sanitary_ppe_waste
+  7: organic
+  8: battery_ewaste
+  9: hazardous_medical

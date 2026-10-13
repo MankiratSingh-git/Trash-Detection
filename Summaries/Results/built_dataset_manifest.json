@@ -1,0 +1,145 @@
+{
+  "total_images": 7355,
+  "total_instances": 21886,
+  "split_images": {
+    "train": 5887,
+    "val": 734,
+    "test": 734
+  },
+  "split_instances": {
+    "train": 17474,
+    "val": 2244,
+    "test": 2168
+  },
+  "dataset_split_images": {
+    "recybat24": {
+      "train": 1056,
+      "val": 132,
+      "test": 132
+    },
+    "bangladesh": {
+      "train": 874,
+      "val": 110,
+      "test": 110
+    },
+    "medbin": {
+      "train": 1206,
+      "val": 151,
+      "test": 151
+    },
+    "mendeley": {
+      "train": 2319,
+      "val": 289,
+      "test": 289
+    },
+    "packwise": {
+      "train": 432,
+      "val": 52,
+      "test": 52
+    }
+  },
+  "class_split_instances": {
+    "paper": {
+      "train": 1967,
+      "val": 272,
+      "test": 257
+    },
+    "cardboard": {
+      "train": 2391,
+      "val": 244,
+      "test": 228
+    },
+    "glass": {
+      "train": 1653,
+      "val": 232,
+      "test": 318
+    },
+    "metal": {
+      "train": 1989,
+      "val": 282,
+      "test": 204
+    },
+    "plastic_bottle": {
+      "train": 1355,
+      "val": 177,
+      "test": 185
+    },
+    "plastic_bag": {
+      "train": 2348,
+      "val": 315,
+      "test": 309
+    },
+    "sanitary_ppe_waste": {
+      "train": 1431,
+      "val": 171,
+      "test": 186
+    },
+    "organic": {
+      "train": 1990,
+      "val": 276,
+      "test": 180
+    },
+    "battery_ewaste": {
+      "train": 1184,
+      "val": 139,
+      "test": 159
+    },
+    "hazardous_medical": {
+      "train": 1166,
+      "val": 136,
+      "test": 142
+    }
+  },
+  "class_split_images": {
+    "paper": {
+      "train": 703,
+      "val": 88,
+      "test": 88
+    },
+    "cardboard": {
+      "train": 811,
+      "val": 101,
+      "test": 101
+    },
+    "glass": {
+      "train": 688,
+      "val": 86,
+      "test": 86
+    },
+    "metal": {
+      "train": 730,
+      "val": 91,
+      "test": 94
+    },
+    "plastic_bottle": {
+      "train": 869,
+      "val": 107,
+      "test": 105
+    },
+    "plastic_bag": {
+      "train": 843,
+      "val": 103,
+      "test": 103
+    },
+    "sanitary_ppe_waste": {
+      "train": 804,
+      "val": 105,
+      "test": 106
+    },
+    "organic": {
+      "train": 495,
+      "val": 63,
+      "test": 60
+    },
+    "battery_ewaste": {
+      "train": 1160,
+      "val": 139,
+      "test": 147
+    },
+    "hazardous_medical": {
+      "train": 799,
+      "val": 87,
+      "test": 97
+    }
+  }
+}
