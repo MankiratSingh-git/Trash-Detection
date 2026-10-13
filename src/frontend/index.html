@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sortify ML - Waste Detection & Classification</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-mark">♻️</div>
+        <div>
+          <h1 class="logo-title">Sortify <span>ML Studio</span></h1>
+          <p class="logo-subtitle">Real-Time Waste Object Detection & Disposal Guidance</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="statusPill" class="status-pill status-connecting">
+          <span class="status-dot"></span>
+          <span id="statusText">Connecting to API...</span>
+        </div>
+        <a href="/docs" target="_blank" class="btn btn-outline btn-sm">API Docs (Swagger)</a>
+      </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="app-grid">
+      <!-- Left Column: Controls & Input -->
+      <aside class="panel controls-panel">
+        <h2 class="panel-title">Inference Settings</h2>
+
+        <!-- Model Selection -->
+        <div class="form-group">
+          <label for="modelSelect">Vision Model</label>
+          <select id="modelSelect" class="form-select">
+            <option value="yolov11">YOLOv11 - Sortify 10-Class Waste Detector</option>
+          </select>
+          <div id="modelMetaInfo" class="meta-tag">10 Classes &bull; 5 Disposal Categories</div>
+        </div>
+
+        <!-- Sliders -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="confSlider">Confidence Threshold</label>
+            <span id="confValue" class="slider-val">0.25</span>
+          </div>
+          <input type="range" id="confSlider" min="0.05" max="0.95" step="0.05" value="0.25" class="range-slider">
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label for="iouSlider">IoU (NMS) Threshold</label>
+            <span id="iouValue" class="slider-val">0.45</span>
+          </div>
+          <input type="range" id="iouSlider" min="0.10" max="0.90" step="0.05" value="0.45" class="range-slider">
+        </div>
+
+        <!-- Image Input Section -->
+        <div class="form-group">
+          <label>Image Source</label>
+          
+          <div id="dropZone" class="drop-zone">
+            <input type="file" id="fileInput" accept="image/*" class="file-input-hidden">
+            <div class="drop-zone-content">
+              <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="36" height="36">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <p class="drop-prompt"><strong>Click to upload</strong> or drag & drop</p>
+              <p class="drop-hint">JPG, PNG, WebP</p>
+            </div>
+          </div>
+
+          <div class="input-actions-row">
+            <button id="webcamBtn" class="btn btn-outline btn-block">📷 Webcam</button>
+            <button id="clearBtn" class="btn btn-outline" title="Clear Image">✕ Clear</button>
+          </div>
+
+          <!-- Video Webcam Feed modal/preview (hidden initially) -->
+          <div id="webcamContainer" class="webcam-container hidden">
+            <video id="webcamVideo" autoplay playsinline></video>
+            <div class="webcam-actions">
+              <button id="captureBtn" class="btn btn-primary btn-sm">Capture Snapshot</button>
+              <button id="closeWebcamBtn" class="btn btn-outline btn-sm">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button id="detectBtn" class="btn btn-primary btn-block btn-lg" disabled>
+          <span class="btn-spinner hidden" id="detectSpinner"></span>
+          <span id="detectBtnText">Detect & Classify Waste</span>
+        </button>
+
+        <!-- Sortify Category Legend -->
+        <div class="legend-box">
+          <h3 class="legend-title">Disposal Taxonomy</h3>
+          <div class="legend-pills">
+            <span class="legend-pill" style="--cat-color: #10B981">Recyclable</span>
+            <span class="legend-pill" style="--cat-color: #6B7280">General waste</span>
+            <span class="legend-pill" style="--cat-color: #F59E0B">Organic</span>
+            <span class="legend-pill" style="--cat-color: #8B5CF6">E-waste</span>
+            <span class="legend-pill" style="--cat-color: #EF4444">Hazardous</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Column: Visualization & Results -->
+      <section class="panel results-panel">
+        <!-- Visual Output Viewport -->
+        <div class="viewport-card">
+          <div class="viewport-header">
+            <div class="tab-group">
+              <button id="tabInteractive" class="tab-btn active">Interactive Canvas</button>
+              <button id="tabAnnotated" class="tab-btn">Server Annotated</button>
+            </div>
+            <div id="perfMetrics" class="perf-metrics hidden">
+              <span id="latencyBadge" class="metric-badge">⚡ 0 ms</span>
+              <span id="countBadge" class="metric-badge">🎯 0 items</span>
+            </div>
+          </div>
+
+          <div class="canvas-viewport" id="viewport">
+            <div id="placeholderView" class="viewport-placeholder">
+              <div class="placeholder-icon">📷</div>
+              <h3>No image selected</h3>
+              <p>Upload a waste image or capture a webcam photo to test YOLOv11 detection</p>
+            </div>
+            <canvas id="detectionCanvas" class="hidden"></canvas>
+            <img id="annotatedImgView" class="hidden" alt="Annotated detection view">
+          </div>
+        </div>
+
+        <!-- Detection Results & Waste Guidance Cards -->
+        <div class="guidance-card">
+          <div class="guidance-header">
+            <h2 class="panel-title">Detection & Disposal Breakdown</h2>
+            <div id="categorySummaryPills" class="category-summary-row"></div>
+          </div>
+
+          <div id="detectionsList" class="detections-grid">
+            <div class="empty-state">Run detection to view identified waste items and disposal guidance.</div>
+          </div>
+        </div>
+
+        <!-- Raw API JSON Inspector -->
+        <details class="json-inspector">
+          <summary class="json-summary">
+            <span>Raw API Response (JSON)</span>
+            <button id="copyJsonBtn" class="btn btn-outline btn-xs" type="button">Copy JSON</button>
+          </summary>
+          <pre id="jsonOutput"><code>{}</code></pre>
+        </details>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
