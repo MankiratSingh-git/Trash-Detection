@@ -1,0 +1,52 @@
+{
+  "0": {
+    "name": "paper",
+    "category": "Recyclable",
+    "guidance": "Clean dry paper bin"
+  },
+  "1": {
+    "name": "cardboard",
+    "category": "Recyclable",
+    "guidance": "Flatten and place in cardboard/paper recycling"
+  },
+  "2": {
+    "name": "glass",
+    "category": "Recyclable",
+    "guidance": "Rinse glass bottle/jar and place in glass recycling"
+  },
+  "3": {
+    "name": "metal",
+    "category": "Recyclable",
+    "guidance": "Empty metal can/foil and place in metal recycling"
+  },
+  "4": {
+    "name": "plastic_bottle",
+    "category": "Recyclable",
+    "guidance": "Empty/crush rigid plastic bottle and cap for recycling"
+  },
+  "5": {
+    "name": "plastic_bag",
+    "category": "General waste",
+    "guidance": "General waste bin (or dedicated soft-plastic film drop-off)"
+  },
+  "6": {
+    "name": "sanitary_ppe_waste",
+    "category": "General waste",
+    "guidance": "Seal masks, gloves, tissues, and dressings in general waste"
+  },
+  "7": {
+    "name": "organic",
+    "category": "Organic",
+    "guidance": "Compost or biodegradable organic waste bin"
+  },
+  "8": {
+    "name": "battery_ewaste",
+    "category": "E-waste",
+    "guidance": "Never bin; take to battery / e-waste collection point"
+  },
+  "9": {
+    "name": "hazardous_medical",
+    "category": "Hazardous",
+    "guidance": "Sharps / hazardous clinical or pharmaceutical disposal container"
+  }
+}

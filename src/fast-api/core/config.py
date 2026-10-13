@@ -25,7 +25,7 @@ class Settings:
     # Default weights path for YOLOv11
     # Check trained Sortify weights first, then fallback to base weights
     TRAINED_YOLO11_WEIGHTS: Path = (
-        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_10cls" / "weights" / "best.pt"
+        PROJECT_ROOT / "YOLOv11" / "model" / "best.pt"
     )
     BASE_YOLO11_WEIGHTS: Path = PROJECT_ROOT / "yolo11s.pt"
 
