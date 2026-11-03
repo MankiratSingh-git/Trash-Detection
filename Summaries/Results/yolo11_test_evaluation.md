@@ -1,22 +1,20 @@
 # Sortify YOLOv11 — Held-Out Test Split Evaluation Report
 
-- **Evaluated Checkpoint:** `C:\Code\Sortify-ML\YOLOv11\runs\sortify_yolo11s_10cls\weights\best.pt`
-- **Overall Precision (`P`):** `0.8280`
-- **Overall Recall (`R`):** `0.6884`
-- **Overall `mAP@50`:** **`0.7667`**
-- **Overall `mAP@50-95`:** **`0.6148`**
+- **Evaluated Checkpoint:** `C:\Code\Trash-Detection\YOLOv11\model\best.pt`
+- **Overall Precision (`P`):** `0.7983`
+- **Overall Recall (`R`):** `0.7087`
+- **Overall `mAP@50`:** **`0.7696`**
+- **Overall `mAP@50-95`:** **`0.6423`**
 
 ## Per-Class Test Metrics
 
 | Class ID | Detector Class | Backend Disposal Category | Precision | Recall | mAP@50 | mAP@50-95 |
 | :-: | :--- | :--- | --: | --: | --: | --: |
-| **`0`** | **`paper`** | **Recyclable** | `0.7242` | `0.4436` | **`0.5679`** | `0.3746` |
-| **`1`** | **`cardboard`** | **Recyclable** | `0.8261` | `0.7082` | **`0.8050`** | `0.6318` |
-| **`2`** | **`glass`** | **Recyclable** | `0.9081` | `0.4686` | **`0.5256`** | `0.4005` |
-| **`3`** | **`metal`** | **Recyclable** | `0.8332` | `0.7255` | **`0.8240`** | `0.5951` |
-| **`4`** | **`plastic_bottle`** | **Recyclable** | `0.8235` | `0.7946` | **`0.8685`** | `0.7341` |
-| **`5`** | **`plastic_bag`** | **General waste** | `0.6526` | `0.6375` | **`0.7096`** | `0.5659` |
-| **`6`** | **`sanitary_ppe_waste`** | **General waste** | `0.8717` | `0.7796` | **`0.8779`** | `0.7464` |
-| **`7`** | **`organic`** | **Organic** | `0.7567` | `0.5529` | **`0.6122`** | `0.4732` |
-| **`8`** | **`battery_ewaste`** | **E-waste** | `0.9717` | `0.9497` | **`0.9864`** | `0.8769` |
-| **`9`** | **`hazardous_medical`** | **Hazardous** | `0.9129` | `0.8239` | **`0.8900`** | `0.7497` |
+| **`0`** | **`paper_cardboard`** | **Recyclable** | `0.6982` | `0.4412` | **`0.5457`** | `0.4577` |
+| **`1`** | **`plastic_bottle`** | **Recyclable** | `0.8184` | `0.8084` | **`0.8492`** | `0.7032` |
+| **`2`** | **`metal`** | **Recyclable** | `0.7059` | `0.5939` | **`0.7006`** | `0.5878` |
+| **`3`** | **`flexible_plastic`** | **General waste** | `0.6417` | `0.5585` | **`0.6184`** | `0.4687` |
+| **`4`** | **`sanitary_ppe_waste`** | **General waste** | `0.8794` | `0.8235` | **`0.8781`** | `0.7485` |
+| **`5`** | **`organic`** | **Organic** | `0.8037` | `0.5910` | **`0.6910`** | `0.5100` |
+| **`6`** | **`battery_ewaste`** | **E-waste** | `0.9563` | `0.9613` | **`0.9630`** | `0.8494` |
+| **`7`** | **`hazardous_medical`** | **Hazardous** | `0.8830` | `0.8921` | **`0.9108`** | `0.8135` |

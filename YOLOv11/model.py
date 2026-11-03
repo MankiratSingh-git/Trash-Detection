@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Dict, List
@@ -27,24 +28,22 @@ RUNTIME_DATASET_YAML = Path(__file__).resolve().parent / "dataset.runtime.yaml"
 RUNS_DIR = Path(__file__).resolve().parent / "runs"
 SUMMARIES_RESULTS_DIR = ROOT / "Summaries" / "Results"
 
-# Canonical 10 detector classes -> 5 Sortify backend disposal categories
+# Streamlined 8 detector classes -> 5 Sortify backend disposal categories
 SORTIFY_CLASSES: Dict[int, Dict[str, str]] = {
-    0: {"name": "paper", "category": "Recyclable", "guidance": "Clean dry paper bin"},
-    1: {"name": "cardboard", "category": "Recyclable", "guidance": "Flatten and place in cardboard/paper recycling"},
-    2: {"name": "glass", "category": "Recyclable", "guidance": "Rinse glass bottle/jar and place in glass recycling"},
-    3: {"name": "metal", "category": "Recyclable", "guidance": "Empty metal can/foil and place in metal recycling"},
-    4: {"name": "plastic_bottle", "category": "Recyclable", "guidance": "Empty/crush rigid plastic bottle and cap for recycling"},
-    5: {"name": "plastic_bag", "category": "General waste", "guidance": "General waste bin (or dedicated soft-plastic film drop-off)"},
-    6: {"name": "sanitary_ppe_waste", "category": "General waste", "guidance": "Seal masks, gloves, tissues, and dressings in general waste"},
-    7: {"name": "organic", "category": "Organic", "guidance": "Compost or biodegradable organic waste bin"},
-    8: {"name": "battery_ewaste", "category": "E-waste", "guidance": "Never bin; take to battery / e-waste collection point"},
-    9: {"name": "hazardous_medical", "category": "Hazardous", "guidance": "Sharps / hazardous clinical or pharmaceutical disposal container"},
+    0: {"name": "paper_cardboard", "category": "Recyclable", "guidance": "Clean dry paper, box, or cardboard recycling bin"},
+    1: {"name": "plastic_bottle", "category": "Recyclable", "guidance": "Empty/crush rigid plastic bottle and cap for recycling"},
+    2: {"name": "metal", "category": "Recyclable", "guidance": "Empty metal can, foil, or lid and place in metal recycling"},
+    3: {"name": "flexible_plastic", "category": "General waste", "guidance": "General waste bin (or dedicated soft-plastic film drop-off)"},
+    4: {"name": "sanitary_ppe_waste", "category": "General waste", "guidance": "Seal masks, gloves, tissues, and dressings in general waste"},
+    5: {"name": "organic", "category": "Organic", "guidance": "Compost or biodegradable organic waste bin"},
+    6: {"name": "battery_ewaste", "category": "E-waste", "guidance": "Never bin; take to battery / e-waste collection point"},
+    7: {"name": "hazardous_medical", "category": "Hazardous", "guidance": "Sharps / hazardous clinical or pharmaceutical disposal container"},
 }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train, evaluate, or run inference with the Sortify 10-class YOLO11 waste detector."
+        description="Train, evaluate, or run inference with the Sortify 8-class YOLO11 waste detector."
     )
     parser.add_argument(
         "--model",
@@ -98,9 +97,52 @@ def parse_args() -> argparse.Namespace:
         help="Cache images in RAM/disk for faster epoch iteration",
     )
     parser.add_argument(
+        "--save-period",
+        type=int,
+        default=-1,
+        help="Checkpoint save interval in epochs (default: -1, only saves best.pt and last.pt to save disk space)",
+    )
+    parser.add_argument(
         "--name",
-        default="sortify_yolo11s_10cls",
-        help="Run folder name under YOLOv11/runs (default: sortify_yolo11s_10cls)",
+        default="sortify_yolo11s_8cls_streamlined",
+        help="Run folder name under YOLOv11/runs (default: sortify_yolo11s_8cls_streamlined)",
+    )
+    # Calibrated multi-domain & color-invariance augmentations
+    parser.add_argument(
+        "--hsv-h",
+        type=float,
+        default=0.15,
+        help="HSV-Hue augmentation fraction (default: 0.15, +/-54 deg hue drift to prevent color shortcuts)",
+    )
+    parser.add_argument(
+        "--hsv-s",
+        type=float,
+        default=0.80,
+        help="HSV-Saturation augmentation fraction (default: 0.80, allows desaturation to promote shape learning)",
+    )
+    parser.add_argument(
+        "--hsv-v",
+        type=float,
+        default=0.40,
+        help="HSV-Value (brightness) augmentation fraction (default: 0.40)",
+    )
+    parser.add_argument(
+        "--erasing",
+        type=float,
+        default=0.25,
+        help="Random erasing/cutout probability (default: 0.25, prevents keying purely on specular glints)",
+    )
+    parser.add_argument(
+        "--mixup",
+        type=float,
+        default=0.15,
+        help="Mixup augmentation probability (default: 0.15, blends studio & in-situ backgrounds)",
+    )
+    parser.add_argument(
+        "--shear",
+        type=float,
+        default=2.5,
+        help="Shear augmentation degrees (default: 2.5, aids 3D rigidity vs flexibility cues)",
     )
     parser.add_argument(
         "--resume",
@@ -116,7 +158,7 @@ def parse_args() -> argparse.Namespace:
         "--eval-only",
         default=None,
         metavar="WEIGHTS",
-        help="Skip training and only evaluate the specified checkpoint (e.g. YOLOv11/runs/sortify_yolo11s_10cls/weights/best.pt) on the test split",
+        help="Skip training and only evaluate the specified checkpoint (e.g. YOLOv11/runs/sortify_yolo11m_calibrated_aug/weights/best.pt) on the test split",
     )
     parser.add_argument(
         "--predict",
@@ -310,7 +352,15 @@ def main() -> None:
     print(f"Schedule:   {args.epochs} epochs | imgsz={args.imgsz} | batch={args.batch} | patience={args.patience}")
     print("=" * 76)
 
-    model = YOLO(args.model)
+    if args.resume:
+        last_weights = RUNS_DIR / args.name / "weights" / "last.pt"
+        if last_weights.is_file() and args.model in ("yolo11s.pt", "yolo11m.pt"):
+            print(f"[Resume] Loading checkpoint: {last_weights}")
+            model = YOLO(str(last_weights))
+        else:
+            model = YOLO(args.model)
+    else:
+        model = YOLO(args.model)
     model.train(
         data=str(runtime_data_yaml),
         epochs=args.epochs,
@@ -330,21 +380,23 @@ def main() -> None:
         seed=42,
         deterministic=True,
         cache=args.cache,
-        # Multi-domain waste augmentation settings (bridges street, bin, conveyor & tabletop domains)
+        # Calibrated multi-domain & color-invariance augmentations
         mosaic=1.0,
         close_mosaic=15,
-        mixup=0.10,
+        mixup=args.mixup,
         degrees=15.0,
         translate=0.10,
         scale=0.50,
+        shear=args.shear,
         fliplr=0.50,
         flipud=0.10,
-        hsv_h=0.015,
-        hsv_s=0.70,
-        hsv_v=0.40,
+        hsv_h=args.hsv_h,
+        hsv_s=args.hsv_s,
+        hsv_v=args.hsv_v,
+        erasing=args.erasing,
         plots=True,
         save=True,
-        save_period=10,
+        save_period=args.save_period,
         verbose=True,
     )
 
@@ -359,8 +411,35 @@ def main() -> None:
         raise SystemExit(2)
 
     mapping_file = export_backend_mapping(run_dir)
+
+    # Deploy best checkpoint to YOLOv11/model/ with automatic backup and optimizer stripping
+    deploy_dir = Path(__file__).resolve().parent / "model"
+    deploy_dir.mkdir(parents=True, exist_ok=True)
+    deployed_best = deploy_dir / "best.pt"
+
+    # Backup previous best.pt if present
+    if deployed_best.is_file():
+        backup_path = deploy_dir / "best_prev.pt"
+        shutil.copy2(deployed_best, backup_path)
+        print(f"[Backup] Preserved previous deployed weights to: {backup_path}")
+
+    # Copy new best weights and mapping
+    shutil.copy2(best_weights, deployed_best)
+    shutil.copy2(mapping_file, deploy_dir / "sortify_class_mapping.json")
+
+    # Strip optimizer states for lightweight, fast production inference
+    try:
+        from ultralytics.utils.torch_utils import strip_optimizer
+        strip_optimizer(deployed_best)
+        orig_mb = best_weights.stat().st_size / (1024 * 1024)
+        opt_mb = deployed_best.stat().st_size / (1024 * 1024)
+        print(f"[Optimize] Stripped training state: {orig_mb:.1f} MB -> {opt_mb:.1f} MB production weights")
+    except Exception as exc:
+        print(f"[Optimize] Note: could not strip optimizer ({exc}); using raw weights.")
+
     print("\n" + "=" * 76)
     print(f"Best checkpoint:          {best_weights}")
+    print(f"Deployed to backend at:   {deployed_best}")
     print(f"Backend category mapping: {mapping_file}")
     print(f"Training artifacts:       {run_dir}")
 
@@ -371,7 +450,7 @@ def main() -> None:
         run_prediction(YOLO, best_weights, args.predict, args)
 
     print("\nDone.")
-    print(f"Best model ready at: {best_weights}")
+    print(f"Best model ready and deployed at: {deploy_dir / 'best.pt'}")
 
 
 if __name__ == "__main__":

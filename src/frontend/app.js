@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeTab = 'interactive';
   let webcamStream = null;
   let highlightedIndex = -1;
+  let availableModels = [];
 
   // 1. Initial Health & Model Discovery
   async function checkApiHealth() {
@@ -78,21 +79,44 @@ document.addEventListener('DOMContentLoaded', () => {
       const models = await res.json();
       
       if (models && models.length > 0) {
+        availableModels = models;
+        const currentSelected = modelSelect.value;
         modelSelect.innerHTML = '';
         models.forEach((m) => {
           const opt = document.createElement('option');
           opt.value = m.name;
-          opt.textContent = `${m.name.toUpperCase()} - ${m.description || m.task}`;
+          opt.textContent = m.description || `${m.name.toUpperCase()} (${m.num_classes} classes)`;
           modelSelect.appendChild(opt);
         });
 
-        const active = models[0];
-        modelMetaInfo.textContent = `${active.num_classes} Classes • ${active.device} • ${active.weights_path.split(/[\\/]/).pop()}`;
+        if (currentSelected && models.some((m) => m.name === currentSelected)) {
+          modelSelect.value = currentSelected;
+        }
+
+        updateModelMetaInfo();
       }
     } catch (err) {
       console.error('Failed to load models:', err);
     }
   }
+
+  function updateModelMetaInfo() {
+    const selectedName = modelSelect.value;
+    const active = availableModels.find((m) => m.name === selectedName) || availableModels[0];
+    if (!active) return;
+
+    const weightsFile = active.weights_path ? active.weights_path.split(/[\\/]/).pop() : 'weights.pt';
+    const classCount = active.num_classes || Object.keys(active.classes || {}).length || 0;
+    const statusTag = active.is_loaded ? 'Loaded' : 'Ready on-demand';
+    modelMetaInfo.textContent = `${classCount} Classes • ${active.device || 'auto'} • ${weightsFile} • ${statusTag}`;
+  }
+
+  modelSelect.addEventListener('change', () => {
+    updateModelMetaInfo();
+    if (currentResponse) {
+      detectionsList.innerHTML = `<div class="empty-state">Selected <strong>${modelSelect.value}</strong>. Click "Detect & Classify Waste" to run this model.</div>`;
+    }
+  });
 
   // 2. Sliders
   confSlider.addEventListener('input', (e) => {

@@ -22,6 +22,7 @@ from core.config import settings
 from core.registry import model_registry
 from routers.health import router as health_router
 from routers.yolov11 import router as yolov11_router
+from routers.models import router as models_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     # Include API Routers
     app.include_router(health_router)
     app.include_router(yolov11_router)
+    app.include_router(models_router)
 
     # Mount frontend static directory if present
     frontend_dir = settings.FRONTEND_DIR

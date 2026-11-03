@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import logging
 import time
 from pathlib import Path
@@ -23,8 +24,10 @@ from core.schemas import (
     PredictionResponse,
 )
 from models.yolov11.categories import (
+    CategoryInfo,
     SORTIFY_CATEGORIES,
     SORTIFY_CLASSES,
+    get_category_color,
     get_class_info,
 )
 
@@ -32,25 +35,38 @@ logger = logging.getLogger("sortify.yolov11")
 
 
 class YOLOv11Model(BaseVisionModel):
-    """Sortify YOLOv11 Object Detection & Waste Categorization Service."""
+    """Sortify YOLOv11 Object Detection & Waste Categorization Service.
+
+    Supports configurable checkpoints, automated class mapping resolution,
+    5 Sortify disposal bins, and GPU/CPU device dispatch.
+    """
 
     def __init__(
         self,
+        name: str = "yolov11",
+        version: str = "11.0.0-sortify",
+        description: str = "Ultralytics YOLO11 model for Sortify waste detection.",
         weights_path: Optional[Union[str, Path]] = None,
+        mapping_path: Optional[Union[str, Path]] = None,
         device: Optional[str] = None,
     ):
         super().__init__(
-            name="yolov11",
-            version="11.0.0-sortify",
-            description="Ultralytics YOLO11s trained on Sortify 10-class waste dataset with 5 disposal categories.",
+            name=name,
+            version=version,
+            description=description,
         )
         self.weights_path: Path = Path(weights_path) if weights_path else settings.DEFAULT_YOLO11_WEIGHTS
+        self.mapping_path: Optional[Path] = Path(mapping_path) if mapping_path else None
         self.device: str = device or settings.DEFAULT_DEVICE
         self.model = None
         self._class_names: Dict[int, str] = {}
+        self._class_info_map: Dict[int, CategoryInfo] = {}
+
+        # Pre-resolve class mapping metadata from JSON without loading heavy weights
+        self._resolve_class_mapping()
 
     def load(self, weights_path: Optional[str] = None) -> None:
-        """Load YOLO11 model weights."""
+        """Load YOLO11 model weights and resolve category taxonomy."""
         if weights_path:
             self.weights_path = Path(weights_path)
 
@@ -59,7 +75,7 @@ class YOLOv11Model(BaseVisionModel):
             fallback = settings.BASE_YOLO11_WEIGHTS
             if fallback.is_file():
                 logger.warning(
-                    "Trained weights not found at %s. Falling back to %s",
+                    "Specified weights not found at %s. Falling back to %s",
                     self.weights_path,
                     fallback,
                 )
@@ -76,21 +92,70 @@ class YOLOv11Model(BaseVisionModel):
                 "Ultralytics package is missing. Install with 'pip install ultralytics'."
             ) from exc
 
-        logger.info("Loading YOLOv11 checkpoint from: %s", self.weights_path)
+        logger.info("[%s] Loading checkpoint: %s", self.name, self.weights_path)
         self.model = YOLO(str(self.weights_path))
 
-        # Populate class names from model or default taxonomy
+        # Populate class names from model checkpoint
         if hasattr(self.model, "names") and isinstance(self.model.names, dict):
             self._class_names = {int(k): str(v) for k, v in self.model.names.items()}
         else:
             self._class_names = {cid: info["name"] for cid, info in SORTIFY_CLASSES.items()}
 
+        # Resolve category mapping JSON
+        self._resolve_class_mapping()
+
         self.is_loaded = True
         logger.info(
-            "YOLOv11 loaded successfully. Classes: %d, Device: %s",
+            "[%s] Loaded successfully. Classes: %d (%s), Device: %s",
+            self.name,
             len(self._class_names),
+            ", ".join(list(self._class_names.values())[:4]) + ("..." if len(self._class_names) > 4 else ""),
             self.device or "auto",
         )
+
+    def _resolve_class_mapping(self) -> None:
+        """Resolve per-class Sortify disposal categories and guidance."""
+        self._class_info_map.clear()
+
+        # Potential mapping file locations
+        candidates: List[Path] = []
+        if self.mapping_path:
+            candidates.append(self.mapping_path)
+        candidates.append(self.weights_path.parent / "sortify_class_mapping.json")
+        candidates.append(self.weights_path.parent.parent / "sortify_class_mapping.json")
+        candidates.append(settings.ROOT_DIR / "YOLOv11" / "model" / "sortify_class_mapping.json")
+
+        loaded_from_file = False
+        for cand in candidates:
+            if cand.is_file():
+                try:
+                    with open(cand, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    for cid_str, info_dict in data.items():
+                        cid = int(cid_str)
+                        cname = info_dict.get("name", self._class_names.get(cid, f"class_{cid}"))
+                        if cid not in self._class_names:
+                            self._class_names[cid] = cname
+                        category = info_dict.get("category", "General waste")
+                        guidance = info_dict.get("guidance", "Inspect item carefully")
+                        color, bgr = get_category_color(category, cname)
+                        self._class_info_map[cid] = {
+                            "name": cname,
+                            "category": category,
+                            "guidance": guidance,
+                            "color": color,
+                            "bgr": bgr,
+                        }
+                    loaded_from_file = True
+                    logger.info("[%s] Loaded class mapping from %s", self.name, cand)
+                    break
+                except Exception as exc:
+                    logger.warning("[%s] Failed loading mapping from %s: %s", self.name, cand, exc)
+
+        # Ensure all model classes have full info
+        for cid, cname in self._class_names.items():
+            if cid not in self._class_info_map:
+                self._class_info_map[cid] = get_class_info(cid, cname)
 
     def _ensure_loaded(self) -> None:
         """Helper to ensure weights are loaded before inference."""
@@ -184,7 +249,9 @@ class YOLOv11Model(BaseVisionModel):
                     }
 
                     class_name = self._class_names.get(cid, f"class_{cid}")
-                    info = get_class_info(cid, class_name)
+                    info = self._class_info_map.get(cid) or get_class_info(
+                        cid, class_name, self._class_info_map
+                    )
                     cat_name = info["category"]
 
                     if cat_name in category_counts:
@@ -276,7 +343,9 @@ class YOLOv11Model(BaseVisionModel):
                 int(det.box.y2),
             )
             cid = det.class_id
-            info = get_class_info(cid, det.class_name)
+            info = self._class_info_map.get(cid) or get_class_info(
+                cid, det.class_name, self._class_info_map
+            )
             bgr_color = info["bgr"]
 
             # Draw outer rectangle
@@ -320,8 +389,9 @@ class YOLOv11Model(BaseVisionModel):
     def get_metadata(self) -> ModelMetadata:
         """Return model metadata and configuration."""
         classes_map = self._class_names or {
-            cid: info["name"] for cid, info in SORTIFY_CLASSES.items()
+            cid: info["name"] for cid, info in self._class_info_map.items()
         }
+        categories = list({info["category"] for info in self._class_info_map.values()}) or SORTIFY_CATEGORIES
         return ModelMetadata(
             name=self.name,
             version=self.version,
@@ -332,5 +402,5 @@ class YOLOv11Model(BaseVisionModel):
             is_loaded=self.is_loaded,
             num_classes=len(classes_map),
             classes=classes_map,
-            categories=SORTIFY_CATEGORIES,
+            categories=sorted(categories),
         )

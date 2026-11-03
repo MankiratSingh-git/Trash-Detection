@@ -22,24 +22,52 @@ class Settings:
     FAST_API_DIR: Path = FAST_API_DIR
     FRONTEND_DIR: Path = SRC_DIR / "frontend"
 
-    # Default weights path for YOLOv11
-    # Check trained Sortify weights first, then fallback to base weights
-    TRAINED_YOLO11_WEIGHTS: Path = (
+    # Weights and mappings for available models
+    DEPLOYED_YOLO11_WEIGHTS: Path = (
         PROJECT_ROOT / "YOLOv11" / "model" / "best.pt"
     )
+    DEPLOYED_YOLO11_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "model" / "sortify_class_mapping.json"
+    )
+
+    STREAMLINED_YOLO11S_WEIGHTS: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_streamlined" / "weights" / "best.pt"
+    )
+    STREAMLINED_YOLO11S_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_streamlined" / "sortify_class_mapping.json"
+    )
+
+    LEGACY_YOLO11S_10CLS_WEIGHTS: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_10cls" / "weights" / "best.pt"
+    )
+    LEGACY_YOLO11S_10CLS_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_10cls" / "sortify_class_mapping.json"
+    )
+
+    CALIBRATED_YOLO11M_WEIGHTS: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11m_calibrated_aug" / "weights" / "best.pt"
+    )
+    CALIBRATED_YOLO11M_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11m_calibrated_aug" / "sortify_class_mapping.json"
+    )
+
     BASE_YOLO11_WEIGHTS: Path = PROJECT_ROOT / "yolo11s.pt"
 
     @property
     def DEFAULT_YOLO11_WEIGHTS(self) -> Path:
-        """Resolve best available YOLOv11 weights."""
+        """Resolve best available default YOLOv11 weights."""
         env_weights = os.getenv("YOLO11_WEIGHTS_PATH")
         if env_weights and Path(env_weights).is_file():
             return Path(env_weights)
-        if self.TRAINED_YOLO11_WEIGHTS.is_file():
-            return self.TRAINED_YOLO11_WEIGHTS
+        if self.DEPLOYED_YOLO11_WEIGHTS.is_file():
+            return self.DEPLOYED_YOLO11_WEIGHTS
+        if self.STREAMLINED_YOLO11S_WEIGHTS.is_file():
+            return self.STREAMLINED_YOLO11S_WEIGHTS
+        if self.LEGACY_YOLO11S_10CLS_WEIGHTS.is_file():
+            return self.LEGACY_YOLO11S_10CLS_WEIGHTS
         if self.BASE_YOLO11_WEIGHTS.is_file():
             return self.BASE_YOLO11_WEIGHTS
-        return self.TRAINED_YOLO11_WEIGHTS
+        return self.DEPLOYED_YOLO11_WEIGHTS
 
     # Inference defaults
     DEFAULT_CONF_THRESHOLD: float = float(os.getenv("DEFAULT_CONF_THRESHOLD", "0.25"))

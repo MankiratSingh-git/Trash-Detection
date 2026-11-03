@@ -16,20 +16,34 @@ src/
 │   │   └── schemas.py          # Pydantic schemas (DetectionResult, BoundingBox, etc.)
 │   ├── models/
 │   │   ├── yolov11/
-│   │   │   ├── categories.py   # Sortify 10-class waste taxonomy & disposal bins
-│   │   │   └── service.py      # YOLOv11 detector implementation
+│   │   │   ├── categories.py   # Sortify 8-class & 10-class taxonomy & disposal bins
+│   │   │   └── service.py      # YOLOv11 detector implementation with auto-mapping
 │   │   └── __init__.py         # Registers available models in registry
 │   ├── routers/
 │   │   ├── health.py           # /health and /api/v1/models discovery
-│   │   └── yolov11.py          # YOLOv11 endpoints (/predict, /annotate, etc.)
+│   │   ├── yolov11.py          # Dedicated YOLOv11 endpoints
+│   │   └── models.py           # Dynamic endpoints for ANY registered model (/api/v1/{model_name}/...)
 │   ├── main.py                 # FastAPI app, middleware, and frontend mount
 │   ├── run.py                  # Standalone execution script
 │   └── requirements.txt
 └── frontend/
-    ├── index.html              # Modern, responsive test interface
+    ├── index.html              # Modern, responsive test interface with model selection
     ├── style.css               # Clean dark-themed CSS
     └── app.js                  # Interactive canvas overlay, sliders, and API client
 ```
+
+---
+
+## 🎯 Available Models & Options
+
+The backend supports multiple model checkpoints registered in the ModelRegistry:
+
+| Model ID | Architecture | Classes | Checkpoint Path | Description |
+|---|---|---|---|---|
+| **`yolov11`** *(Default)* | YOLO11s | **8 classes** | `YOLOv11/model/best.pt` | Production deployed streamlined model |
+| **`yolov11s_8cls`** | YOLO11s | **8 classes** | `YOLOv11/runs/sortify_yolo11s_8cls_streamlined/weights/best.pt` | Streamlined 8-class detector |
+| **`yolov11s_10cls`** | YOLO11s | **10 classes**| `YOLOv11/runs/sortify_yolo11s_10cls/weights/best.pt` | Legacy 10-class detector |
+| **`yolov11m_calibrated`**| YOLO11m | **10 classes**| `YOLOv11/runs/sortify_yolo11m_calibrated_aug/weights/best.pt` | Calibrated medium 10-class detector |
 
 ---
 
@@ -54,14 +68,19 @@ Once running:
 
 ## 📡 API Endpoints
 
-### 1. YOLOv11 Endpoints
+### 1. Dynamic Model Endpoints (Works for ANY registered model)
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/v1/yolov11/predict` | Upload an image, get bounding boxes, confidence, Sortify waste category, and disposal guidance |
-| `POST` | `/api/v1/yolov11/annotate` | Upload an image, receive the annotated JPEG directly |
-| `POST` | `/api/v1/yolov11/predict-batch`| Upload multiple images for batch inference |
-| `GET`  | `/api/v1/yolov11/info` | Inspect model metadata, classes, categories, and device |
-| `POST` | `/api/v1/yolov11/reload` | Dynamically reload weights or point to a custom checkpoint |
+| `POST` | `/api/v1/{model_name}/predict` | Upload an image, get bounding boxes, confidence, Sortify waste category, and disposal guidance |
+| `POST` | `/api/v1/{model_name}/annotate` | Upload an image, receive the annotated JPEG directly |
+| `POST` | `/api/v1/{model_name}/predict-batch`| Upload multiple images for batch inference |
+| `GET`  | `/api/v1/{model_name}/info` | Inspect model metadata, classes, categories, and device |
+| `POST` | `/api/v1/{model_name}/reload` | Dynamically reload weights or point to a custom checkpoint |
+
+*Examples:*
+- `/api/v1/yolov11/predict` (Default deployed model)
+- `/api/v1/yolov11s_8cls/predict` (Streamlined 8-class model)
+- `/api/v1/yolov11s_10cls/predict` (Legacy 10-class model)
 
 ### 2. System Endpoints
 | Method | Endpoint | Description |
@@ -71,61 +90,15 @@ Once running:
 
 ---
 
-## 🛠️ Adding New Models in the Future
-
-The architecture is built according to the **Open-Closed Principle (OCP)**. To add a new model (e.g., `yolov8`, `resnet`, or `clip`):
-
-### Step 1: Implement the Model Service
-Create a new directory in `src/fast-api/models/<model_name>/service.py`:
-```python
-from ...core.base_model import BaseVisionModel
-from ...core.schemas import PredictionResponse, ModelMetadata
-
-class MyNewModel(BaseVisionModel):
-    def __init__(self):
-        super().__init__(name="mynewmodel", version="1.0.0", description="...")
-
-    def load(self, weights_path=None):
-        ...
-
-    def predict(self, image, conf=0.25, iou=0.45, **kwargs) -> PredictionResponse:
-        ...
-
-    def annotate(self, image, **kwargs):
-        ...
-
-    def get_metadata(self) -> ModelMetadata:
-        ...
-```
-
-### Step 2: Register in `src/fast-api/models/__init__.py`
-```python
-from ..core.registry import model_registry
-from .mynewmodel.service import MyNewModel
-
-model_registry.register("mynewmodel", lambda: MyNewModel())
-```
-
-### Step 3: Add Router in `src/fast-api/routers/mynewmodel.py`
-Create endpoint handlers and include them in `src/fast-api/main.py`:
-```python
-app.include_router(mynewmodel_router)
-```
-The model will automatically appear in `/api/v1/models` and in the frontend dropdown!
-
----
-
-## ♻️ Sortify Waste Categories
+## ♻️ Streamlined 8-Class Waste Taxonomy
 
 | Class ID | Class Name | Sortify Category | Guidance |
 |---|---|---|---|
-| 0 | paper | Recyclable | Clean dry paper bin |
-| 1 | cardboard | Recyclable | Flatten and place in cardboard/paper recycling |
-| 2 | glass | Recyclable | Rinse glass bottle/jar and place in glass recycling |
-| 3 | metal | Recyclable | Empty metal can/foil and place in metal recycling |
-| 4 | plastic_bottle | Recyclable | Empty/crush rigid plastic bottle and cap for recycling |
-| 5 | plastic_bag | General waste | General waste bin (or dedicated soft-plastic drop-off) |
-| 6 | sanitary_ppe_waste | General waste | Seal masks, gloves, tissues in general waste |
-| 7 | organic | Organic | Compost or biodegradable organic waste bin |
-| 8 | battery_ewaste | E-waste | Never bin; take to battery / e-waste collection point |
-| 9 | hazardous_medical | Hazardous | Sharps / hazardous medical container |
+| 0 | `paper_cardboard` | Recyclable | Clean dry paper, box, or cardboard recycling bin |
+| 1 | `plastic_bottle` | Recyclable | Empty/crush rigid plastic bottle and cap for recycling |
+| 2 | `metal` | Recyclable | Empty metal can, foil, or lid and place in metal recycling |
+| 3 | `flexible_plastic` | General waste | General waste bin (or dedicated soft-plastic film drop-off) |
+| 4 | `sanitary_ppe_waste` | General waste | Seal masks, gloves, tissues, and dressings in general waste |
+| 5 | `organic` | Organic | Compost or biodegradable organic waste bin |
+| 6 | `battery_ewaste` | E-waste | Never bin; take to battery / e-waste collection point |
+| 7 | `hazardous_medical` | Hazardous | Sharps / hazardous clinical or pharmaceutical disposal container |

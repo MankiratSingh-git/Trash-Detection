@@ -1,18 +1,16 @@
-# Sortify Unified 10-Class YOLOv11 Dataset
-path: C:/Code/Sortify-ML/Dataset
+# Sortify Streamlined 8-Class YOLOv11 Dataset
+path: C:/Code/Trash-Detection/Dataset
 train: images/train
 val: images/val
 test: images/test
 
-nc: 10
+nc: 8
 names:
-  0: paper
-  1: cardboard
-  2: glass
-  3: metal
-  4: plastic_bottle
-  5: plastic_bag
-  6: sanitary_ppe_waste
-  7: organic
-  8: battery_ewaste
-  9: hazardous_medical
+  0: paper_cardboard
+  1: plastic_bottle
+  2: metal
+  3: flexible_plastic
+  4: sanitary_ppe_waste
+  5: organic
+  6: battery_ewaste
+  7: hazardous_medical

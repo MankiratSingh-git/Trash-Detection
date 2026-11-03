@@ -223,3 +223,6 @@ __marimo__/
 /Dataset
 /RAW Datasets
 /YOLOv11/runs
+/DatasetOld
+YOLOv11/model/best_*.pt
+yolo11m.pt

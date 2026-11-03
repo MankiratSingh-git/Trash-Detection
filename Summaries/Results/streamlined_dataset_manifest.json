@@ -1,0 +1,125 @@
+{
+  "total_images": 6979,
+  "total_instances": 19407,
+  "split_images": {
+    "train": 5583,
+    "val": 698,
+    "test": 698
+  },
+  "split_instances": {
+    "train": 15459,
+    "val": 2029,
+    "test": 1919
+  },
+  "dataset_split_images": {
+    "recybat24": {
+      "train": 1056,
+      "val": 132,
+      "test": 132
+    },
+    "bangladesh": {
+      "train": 2152,
+      "val": 269,
+      "test": 269
+    },
+    "medbin": {
+      "train": 1093,
+      "val": 138,
+      "test": 138
+    },
+    "mendeley": {
+      "train": 847,
+      "val": 105,
+      "test": 105
+    },
+    "packwise": {
+      "train": 435,
+      "val": 54,
+      "test": 54
+    }
+  },
+  "class_split_instances": {
+    "paper_cardboard": {
+      "train": 2678,
+      "val": 354,
+      "test": 408
+    },
+    "plastic_bottle": {
+      "train": 1613,
+      "val": 212,
+      "test": 184
+    },
+    "metal": {
+      "train": 1633,
+      "val": 208,
+      "test": 165
+    },
+    "flexible_plastic": {
+      "train": 4055,
+      "val": 537,
+      "test": 521
+    },
+    "sanitary_ppe_waste": {
+      "train": 1374,
+      "val": 183,
+      "test": 153
+    },
+    "organic": {
+      "train": 1897,
+      "val": 255,
+      "test": 194
+    },
+    "battery_ewaste": {
+      "train": 1162,
+      "val": 142,
+      "test": 155
+    },
+    "hazardous_medical": {
+      "train": 1047,
+      "val": 138,
+      "test": 139
+    }
+  },
+  "class_split_images": {
+    "paper_cardboard": {
+      "train": 1525,
+      "val": 191,
+      "test": 191
+    },
+    "plastic_bottle": {
+      "train": 916,
+      "val": 117,
+      "test": 110
+    },
+    "metal": {
+      "train": 619,
+      "val": 85,
+      "test": 76
+    },
+    "flexible_plastic": {
+      "train": 1498,
+      "val": 186,
+      "test": 188
+    },
+    "sanitary_ppe_waste": {
+      "train": 758,
+      "val": 98,
+      "test": 94
+    },
+    "organic": {
+      "train": 481,
+      "val": 56,
+      "test": 59
+    },
+    "battery_ewaste": {
+      "train": 1138,
+      "val": 142,
+      "test": 143
+    },
+    "hazardous_medical": {
+      "train": 706,
+      "val": 92,
+      "test": 93
+    }
+  }
+}
