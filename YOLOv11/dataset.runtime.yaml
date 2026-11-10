@@ -1,5 +1,5 @@
 # Sortify Streamlined 8-Class YOLOv11 Dataset
-path: C:/Code/Trash-Detection/Dataset
+path: C:/Code/Sortify-ML/Dataset
 train: images/train
 val: images/val
 test: images/test
