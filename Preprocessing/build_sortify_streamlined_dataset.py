@@ -313,93 +313,130 @@ def collect_recybat24_samples() -> Tuple[List[SampleRecord], Dict[str, str]]:
     return samples, group_to_split
 
 
-def collect_mendeley_samples(rng: random.Random) -> List[SampleRecord]:
-    """Mendeley:
-    - Exclude images with GLASS (2) or PLASTIC (5) completely.
-    - 0: BIODEGRADABLE -> organic (5) (cap density <= 15).
-    - 3: METAL -> metal (2) (subsample to balance around ~1,000 instances).
-    - 1: CARDBOARD -> paper_cardboard (0) (optional subsample).
-    - 4: PAPER -> paper_cardboard (0) (optional subsample).
+def collect_organic_waste_samples(rng: random.Random) -> List[SampleRecord]:
+    """Collect genuine organic food scraps, leftovers, peels, bones, and kitchen waste
+    from RAW Datasets/organic_waste_detection.
+    - Deduplicates Roboflow base stems so each unique scene is represented once.
+    - Maps classes 0..31 (excluding class 19 'Other-waste') to Sortify class 5 ('organic').
+    - Subsamples to ~600 base images (~2,500 instances) to balance with other classes.
     """
-    md_dir = RAW_DIR / "Mendely" / "Trash Detection Dataset" / "CUSTOM_DATASET"
-    md_map = {
-        0: 5,  # BIODEGRADABLE -> organic (5)
-        1: 0,  # CARDBOARD -> paper_cardboard (0)
-        3: 2,  # METAL -> metal (2)
-        4: 0,  # PAPER -> paper_cardboard (0)
-    }
-
-    pure_metal: List[SampleRecord] = []
-    pure_paper_cardboard: List[SampleRecord] = []
-    organic_or_multi: List[SampleRecord] = []
+    ow_dir = RAW_DIR / "organic_waste_detection"
+    seen_stems = set()
+    samples: List[SampleRecord] = []
 
     for split in ("train", "valid", "test"):
-        lbl_dir = md_dir / split / "labels"
-        img_dir = md_dir / split / "images"
+        lbl_dir = ow_dir / split / "labels"
+        img_dir = ow_dir / split / "images"
+        if not lbl_dir.is_dir():
+            continue
         for lp in sorted(lbl_dir.glob("*.txt")):
+            base_stem = lp.name.split(".rf.")[0]
+            if base_stem in seen_stems:
+                continue
+            seen_stems.add(base_stem)
+
             raw_boxes = parse_yolo_boxes(lp)
-            cset = frozenset(b[0] for b in raw_boxes)
-            # Strict elimination of GLASS (2) and generic PLASTIC (5)
-            if 2 in cset or 5 in cset:
+            if not raw_boxes:
                 continue
 
+            # Exclude class 19 ('Other-waste'), map everything else to 5 ('organic')
             valid_boxes = [
-                (c, xc, yc, w, h)
+                (5, xc, yc, w, h)
                 for c, xc, yc, w, h in raw_boxes
-                if c in md_map and not (w > 0.90 and h > 0.90)
+                if c != 19 and not (w > 0.95 and h > 0.95)
             ]
             if not valid_boxes:
-                continue
-
-            bio_cnt = sum(1 for c, _, _, _, _ in valid_boxes if c == 0)
-            if bio_cnt > 15:
                 continue
 
             img_path = find_image_for_label(img_dir, lp.stem)
             if img_path is None:
                 continue
 
-            base_stem = lp.name.split(".rf.")[0]
-            mapped_boxes = [(md_map[c], xc, yc, w, h) for c, xc, yc, w, h in valid_boxes]
-            rec = SampleRecord(
-                source_dataset="mendeley",
-                unique_id=f"md_{split}_{lp.stem}",
-                group_id=f"md_{base_stem}",
-                src_img_path=img_path,
-                boxes=mapped_boxes,
+            samples.append(
+                SampleRecord(
+                    source_dataset="organic_waste",
+                    unique_id=f"ow_{base_stem}",
+                    group_id=f"ow_{base_stem}",
+                    src_img_path=img_path,
+                    boxes=valid_boxes,
+                )
             )
 
-            target_cset = frozenset(b[0] for b in mapped_boxes)
-            if target_cset == {2}:  # Pure metal
-                pure_metal.append(rec)
-            elif target_cset == {0}:  # Pure paper/cardboard
-                pure_paper_cardboard.append(rec)
-            else:
-                organic_or_multi.append(rec)
+    rng.shuffle(samples)
+    kept_samples: List[SampleRecord] = []
+    curr_instances = 0
+    for s in samples:
+        cnt = len(s.boxes)
+        if curr_instances + cnt <= 2500:
+            kept_samples.append(s)
+            curr_instances += cnt
+        else:
+            break
 
-    # Subsample pure metal to ~1,000 instances
-    rng.shuffle(pure_metal)
-    kept_metal: List[SampleRecord] = []
-    curr_m = 0
-    for r in pure_metal:
+    kept_samples.sort(key=lambda r: r.unique_id)
+    return kept_samples
+
+
+def collect_mendeley_metal_samples(rng: random.Random) -> List[SampleRecord]:
+    """Collect only authentic natural-background metal cans from Mendeley (excluding studio white backgrounds).
+    - Completely drops all Mendeley BIODEGRADABLE, CARDBOARD, PAPER, GLASS, and PLASTIC.
+    - Filters out any metal image with >25% pure white pixels to eliminate studio catalog bias.
+    """
+    md_dir = RAW_DIR / "Mendely" / "Trash Detection Dataset" / "CUSTOM_DATASET"
+    candidates: List[SampleRecord] = []
+
+    for split in ("train", "valid", "test"):
+        lbl_dir = md_dir / split / "labels"
+        img_dir = md_dir / split / "images"
+        if not lbl_dir.is_dir():
+            continue
+        for lp in sorted(lbl_dir.glob("metal*.txt")):
+            raw_boxes = parse_yolo_boxes(lp)
+            if not raw_boxes:
+                continue
+            if not all(c == 3 for c, _, _, _, _ in raw_boxes):
+                continue
+
+            img_path = find_image_for_label(img_dir, lp.stem)
+            if img_path is None:
+                continue
+
+            if Image is not None:
+                try:
+                    import numpy as np
+                    arr = np.array(Image.open(img_path))
+                    white_px = np.sum((arr[:, :, 0] > 240) & (arr[:, :, 1] > 240) & (arr[:, :, 2] > 240))
+                    pct_white = (white_px / (arr.shape[0] * arr.shape[1])) * 100
+                    if pct_white >= 25.0:
+                        continue
+                except Exception:
+                    pass
+
+            base_stem = lp.name.split(".rf.")[0]
+            mapped_boxes = [(2, xc, yc, w, h) for _, xc, yc, w, h in raw_boxes]
+            candidates.append(
+                SampleRecord(
+                    source_dataset="mendeley",
+                    unique_id=f"md_{split}_{lp.stem}",
+                    group_id=f"md_{base_stem}",
+                    src_img_path=img_path,
+                    boxes=mapped_boxes,
+                )
+            )
+
+    rng.shuffle(candidates)
+    kept: List[SampleRecord] = []
+    curr = 0
+    for r in candidates:
         cnt = len(r.boxes)
-        if curr_m + cnt <= 1000:
-            kept_metal.append(r)
-            curr_m += cnt
+        if curr + cnt <= 550:
+            kept.append(r)
+            curr += cnt
+        else:
+            break
 
-    # Subsample pure paper/cardboard to ~600 instances
-    rng.shuffle(pure_paper_cardboard)
-    kept_pc: List[SampleRecord] = []
-    curr_pc = 0
-    for r in pure_paper_cardboard:
-        cnt = len(r.boxes)
-        if curr_pc + cnt <= 600:
-            kept_pc.append(r)
-            curr_pc += cnt
-
-    all_md = organic_or_multi + kept_metal + kept_pc
-    all_md.sort(key=lambda r: r.unique_id)
-    return all_md
+    kept.sort(key=lambda r: r.unique_id)
+    return kept
 
 
 def assign_stratified_splits(
@@ -485,28 +522,43 @@ def main() -> None:
 
     print("Collecting and mapping samples across raw datasets...")
     bg_samples = collect_bangladesh_samples()
-    md_samples = collect_mendeley_samples(rng)
     pw_samples = collect_packwise_samples()
     mb_samples = collect_medbin_samples()
     rb_samples, rb_group_splits = collect_recybat24_samples()
+    ow_samples = collect_organic_waste_samples(rng)
+    md_samples = collect_mendeley_metal_samples(rng)
 
-    all_samples = bg_samples + md_samples + pw_samples + mb_samples + rb_samples
+    all_samples = bg_samples + pw_samples + mb_samples + rb_samples + ow_samples + md_samples
     print(
         f"Collected {len(all_samples):,} curated images:\n"
         f"  Bangladesh: {len(bg_samples):,}\n"
-        f"  Mendeley (clean non-glass): {len(md_samples):,}\n"
         f"  PackWISE: {len(pw_samples):,}\n"
         f"  MedBin (clean non-glass): {len(mb_samples):,}\n"
-        f"  RecyBat24: {len(rb_samples):,}"
+        f"  RecyBat24: {len(rb_samples):,}\n"
+        f"  Organic Waste (peels/scraps/leftovers): {len(ow_samples):,}\n"
+        f"  Mendeley (metal on natural bgs only): {len(md_samples):,}"
     )
 
     splits = assign_stratified_splits(all_samples, rb_group_splits, rng)
 
-    # Ensure output directory structure exists
+    # Clean and re-initialize output directories
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for sp in ("train", "val", "test"):
-        (OUT_DIR / "images" / sp).mkdir(parents=True, exist_ok=True)
-        (OUT_DIR / "labels" / sp).mkdir(parents=True, exist_ok=True)
+        sp_img = OUT_DIR / "images" / sp
+        sp_lbl = OUT_DIR / "labels" / sp
+        if sp_img.is_dir():
+            shutil.rmtree(sp_img)
+        if sp_lbl.is_dir():
+            shutil.rmtree(sp_lbl)
+        sp_img.mkdir(parents=True, exist_ok=True)
+        sp_lbl.mkdir(parents=True, exist_ok=True)
+
+    # Remove stale YOLO caches
+    for c_file in (OUT_DIR / "labels").glob("*.cache"):
+        try:
+            c_file.unlink()
+        except Exception:
+            pass
 
     tasks = []
     for sp in ("train", "val", "test"):
