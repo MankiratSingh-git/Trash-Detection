@@ -148,10 +148,13 @@ python YOLOv11/model.py --eval-only YOLOv11/model/best.pt --predict path/to/imag
 ## 📁 4. Project Directory Structure
 
 ```text
-├── Dataset/                     # Unified 10-class YOLOv11 dataset (7,355 images)
+├── Dataset/                     # Curated 8-class streamlined dataset (6,979 images)
 │   ├── data.yaml                # YOLOv11 dataset configuration
 │   ├── images/{train,val,test}  # 80% / 10% / 10% stratified image splits
 │   └── labels/{train,val,test}  # 5-column YOLO bounding box labels
+├── weights/                     # Pretrained base foundation models & archives
+│   ├── pretrained/              # Base YOLO11 weights (yolo11s.pt, yolo11m.pt)
+│   └── archive/                 # Archived experimental checkpoints
 ├── Preprocessing/               # Preprocessing & dataset builder scripts
 │   ├── make_yolov11_compatible.py
 │   └── build_sortify_dataset.py
@@ -159,13 +162,15 @@ python YOLOv11/model.py --eval-only YOLOv11/model/best.pt --predict path/to/imag
 │   ├── Results/
 │   │   ├── Preprocessing_Report.md
 │   │   ├── YOLOv11_Run_Summary.md
-│   │   └── final_dataset_summary.md
+│   │   ├── final_dataset_summary.md
+│   │   └── yolo11_test_evaluation.md
 │   └── Scripts/
 ├── YOLOv11/                     # Model scripts & checkpoints
 │   ├── model.py                 # Training, evaluation & inference script
 │   └── model/
-│       ├── best.pt              # Trained 10-class model checkpoint (Epoch 84)
-│       └── sortify_class_mapping.json
+│       ├── best.pt              # Production deployed 8-class model checkpoint
+│       ├── sortify_class_mapping.json
+│       └── archive/             # Previous checkpoint backups (best_prev.pt, etc.)
 └── src/
     ├── fast-api/                # Modular FastAPI backend & routers
     └── frontend/                # Sortify ML Studio web interface

@@ -51,7 +51,9 @@ class Settings:
         PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11m_calibrated_aug" / "sortify_class_mapping.json"
     )
 
-    BASE_YOLO11_WEIGHTS: Path = PROJECT_ROOT / "yolo11s.pt"
+    BASE_YOLO11_WEIGHTS: Path = (
+        PROJECT_ROOT / "weights" / "pretrained" / "yolo11s.pt"
+    )
 
     @property
     def DEFAULT_YOLO11_WEIGHTS(self) -> Path:
@@ -67,6 +69,9 @@ class Settings:
             return self.LEGACY_YOLO11S_10CLS_WEIGHTS
         if self.BASE_YOLO11_WEIGHTS.is_file():
             return self.BASE_YOLO11_WEIGHTS
+        root_base = PROJECT_ROOT / "yolo11s.pt"
+        if root_base.is_file():
+            return root_base
         return self.DEPLOYED_YOLO11_WEIGHTS
 
     # Inference defaults

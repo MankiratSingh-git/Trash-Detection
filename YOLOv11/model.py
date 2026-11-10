@@ -41,14 +41,34 @@ SORTIFY_CLASSES: Dict[int, Dict[str, str]] = {
 }
 
 
+def resolve_model_weights(model_spec: str) -> str:
+    """Resolve a model name or path to a local weights file if present."""
+    p = Path(model_spec)
+    if p.is_file():
+        return str(p)
+    # Check in weights/pretrained/
+    pretrained = ROOT / "weights" / "pretrained" / p.name
+    if pretrained.is_file():
+        return str(pretrained)
+    # Check in weights/
+    weights_path = ROOT / "weights" / p.name
+    if weights_path.is_file():
+        return str(weights_path)
+    # Check in root
+    root_path = ROOT / p.name
+    if root_path.is_file():
+        return str(root_path)
+    return model_spec
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Train, evaluate, or run inference with the Sortify 8-class YOLO11 waste detector."
     )
     parser.add_argument(
         "--model",
-        default="yolo11s.pt",
-        help="YOLO11 checkpoint or architecture YAML (default: yolo11s.pt)",
+        default="weights/pretrained/yolo11s.pt",
+        help="YOLO11 checkpoint or architecture YAML (default: weights/pretrained/yolo11s.pt)",
     )
     parser.add_argument(
         "--data",
@@ -333,9 +353,15 @@ def main() -> None:
 
     # Mode 1: Evaluation-only or Prediction-only on existing weights
     if args.eval_only:
-        weights_path = Path(args.eval_only).resolve()
+        resolved_eval = resolve_model_weights(args.eval_only)
+        weights_path = Path(resolved_eval).resolve()
         if not weights_path.is_file():
-            raise FileNotFoundError(f"Checkpoint not found: {weights_path}")
+            # Check YOLOv11/model/
+            model_deployed = Path(__file__).resolve().parent / "model" / Path(args.eval_only).name
+            if model_deployed.is_file():
+                weights_path = model_deployed.resolve()
+            else:
+                raise FileNotFoundError(f"Checkpoint not found: {weights_path}")
         run_dir = weights_path.parents[1] if weights_path.parent.name == "weights" else RUNS_DIR / args.name
         if not args.skip_test:
             run_test_evaluation(YOLO, weights_path, runtime_data_yaml, args, run_dir)
@@ -344,23 +370,24 @@ def main() -> None:
         return
 
     # Mode 2: Full Training + Validation + Held-out Test Evaluation
+    model_spec = resolve_model_weights(args.model)
     print("=" * 76)
-    print("Sortify 10-Class YOLO11 Object Detector Training")
+    print("Sortify 8-Class YOLO11 Object Detector Training")
     print(f"Dataset:    {dataset_dir} ({runtime_data_yaml})")
-    print(f"Base Model: {args.model}")
+    print(f"Base Model: {model_spec}")
     print(f"Run Output: {RUNS_DIR / args.name}")
     print(f"Schedule:   {args.epochs} epochs | imgsz={args.imgsz} | batch={args.batch} | patience={args.patience}")
     print("=" * 76)
 
     if args.resume:
         last_weights = RUNS_DIR / args.name / "weights" / "last.pt"
-        if last_weights.is_file() and args.model in ("yolo11s.pt", "yolo11m.pt"):
+        if last_weights.is_file() and any(args.model.endswith(w) for w in ("yolo11s.pt", "yolo11m.pt")):
             print(f"[Resume] Loading checkpoint: {last_weights}")
             model = YOLO(str(last_weights))
         else:
-            model = YOLO(args.model)
+            model = YOLO(model_spec)
     else:
-        model = YOLO(args.model)
+        model = YOLO(model_spec)
     model.train(
         data=str(runtime_data_yaml),
         epochs=args.epochs,
@@ -417,9 +444,11 @@ def main() -> None:
     deploy_dir.mkdir(parents=True, exist_ok=True)
     deployed_best = deploy_dir / "best.pt"
 
-    # Backup previous best.pt if present
+    # Backup previous best.pt if present to archive
     if deployed_best.is_file():
-        backup_path = deploy_dir / "best_prev.pt"
+        archive_dir = deploy_dir / "archive"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        backup_path = archive_dir / "best_prev.pt"
         shutil.copy2(deployed_best, backup_path)
         print(f"[Backup] Preserved previous deployed weights to: {backup_path}")
 
