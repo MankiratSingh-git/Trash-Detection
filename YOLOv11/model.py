@@ -67,8 +67,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default="weights/pretrained/yolo11s.pt",
-        help="YOLO11 checkpoint or architecture YAML (default: weights/pretrained/yolo11s.pt)",
+        default="weights/pretrained/yolo11m.pt",
+        help="YOLO11 checkpoint or architecture YAML (default: weights/pretrained/yolo11m.pt)",
     )
     parser.add_argument(
         "--data",
@@ -84,14 +84,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--imgsz",
         type=int,
-        default=640,
-        help="Square input image resolution (default: 640)",
+        default=800,
+        help="Square input image resolution (default: 800)",
     )
     parser.add_argument(
         "--batch",
         type=int,
-        default=16,
-        help="Batch size; use 16 for standard GPUs or -1 for Ultralytics AutoBatch (default: 16)",
+        default=12,
+        help="Batch size; use 12 for standard GPUs or -1 for Ultralytics AutoBatch (default: 12)",
     )
     parser.add_argument(
         "--device",
@@ -124,10 +124,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--name",
-        default="sortify_yolo11s_8cls_streamlined",
-        help="Run folder name under YOLOv11/runs (default: sortify_yolo11s_8cls_streamlined)",
+        default="sortify_yolo11m_8cls_v2",
+        help="Run folder name under YOLOv11/runs (default: sortify_yolo11m_8cls_v2)",
     )
     # Calibrated multi-domain & color-invariance augmentations
+    parser.add_argument(
+        "--copy-paste",
+        type=float,
+        default=0.30,
+        help="Copy-paste augmentation probability (default: 0.30, composites segmented objects to break background memorization)",
+    )
     parser.add_argument(
         "--hsv-h",
         type=float,
@@ -381,10 +387,11 @@ def main() -> None:
 
     if args.resume:
         last_weights = RUNS_DIR / args.name / "weights" / "last.pt"
-        if last_weights.is_file() and any(args.model.endswith(w) for w in ("yolo11s.pt", "yolo11m.pt")):
+        if last_weights.is_file():
             print(f"[Resume] Loading checkpoint: {last_weights}")
             model = YOLO(str(last_weights))
         else:
+            print(f"[Resume] Warning: Checkpoint {last_weights} not found, initializing from base model: {model_spec}")
             model = YOLO(model_spec)
     else:
         model = YOLO(model_spec)
@@ -409,7 +416,8 @@ def main() -> None:
         cache=args.cache,
         # Calibrated multi-domain & color-invariance augmentations
         mosaic=1.0,
-        close_mosaic=15,
+        close_mosaic=20,
+        copy_paste=args.copy_paste,
         mixup=args.mixup,
         degrees=15.0,
         translate=0.10,

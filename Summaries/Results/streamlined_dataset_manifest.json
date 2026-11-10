@@ -1,26 +1,31 @@
 {
-  "total_images": 6669,
-  "total_instances": 18374,
+  "total_images": 8685,
+  "total_instances": 23678,
   "split_images": {
-    "train": 5333,
-    "val": 668,
-    "test": 668
+    "train": 6941,
+    "val": 833,
+    "test": 911
   },
   "split_instances": {
-    "train": 14673,
-    "val": 1773,
-    "test": 1928
+    "train": 18760,
+    "val": 2305,
+    "test": 2613
   },
   "dataset_split_images": {
+    "packwise": {
+      "train": 1412,
+      "val": 141,
+      "test": 219
+    },
     "recybat24": {
       "train": 1056,
       "val": 132,
       "test": 132
     },
     "bangladesh": {
-      "train": 2152,
-      "val": 269,
-      "test": 269
+      "train": 1794,
+      "val": 224,
+      "test": 224
     },
     "medbin": {
       "train": 1093,
@@ -28,103 +33,98 @@
       "test": 138
     },
     "mendeley": {
-      "train": 119,
-      "val": 15,
-      "test": 15
+      "train": 131,
+      "val": 16,
+      "test": 16
     },
     "organic_waste": {
-      "train": 478,
-      "val": 60,
-      "test": 60
-    },
-    "packwise": {
-      "train": 435,
-      "val": 54,
-      "test": 54
+      "train": 1455,
+      "val": 182,
+      "test": 182
     }
   },
   "class_split_instances": {
     "paper_cardboard": {
-      "train": 2175,
-      "val": 283,
-      "test": 315
+      "train": 2378,
+      "val": 248,
+      "test": 323
     },
     "plastic_bottle": {
-      "train": 1648,
-      "val": 159,
-      "test": 202
+      "train": 1650,
+      "val": 175,
+      "test": 222
     },
     "metal": {
-      "train": 1229,
-      "val": 125,
-      "test": 132
+      "train": 799,
+      "val": 124,
+      "test": 196
     },
     "flexible_plastic": {
-      "train": 4076,
-      "val": 527,
-      "test": 510
+      "train": 3460,
+      "val": 382,
+      "test": 538
     },
     "sanitary_ppe_waste": {
-      "train": 1339,
-      "val": 187,
-      "test": 184
+      "train": 1430,
+      "val": 166,
+      "test": 178
     },
     "organic": {
-      "train": 1996,
-      "val": 226,
-      "test": 278
+      "train": 6819,
+      "val": 925,
+      "test": 864
     },
     "battery_ewaste": {
       "train": 1160,
-      "val": 143,
-      "test": 156
+      "val": 144,
+      "test": 155
     },
     "hazardous_medical": {
-      "train": 1050,
-      "val": 123,
-      "test": 151
+      "train": 1064,
+      "val": 141,
+      "test": 137
     }
   },
   "class_split_images": {
     "paper_cardboard": {
-      "train": 1350,
-      "val": 169,
-      "test": 169
+      "train": 1618,
+      "val": 189,
+      "test": 230
     },
     "plastic_bottle": {
-      "train": 915,
-      "val": 110,
-      "test": 118
+      "train": 965,
+      "val": 111,
+      "test": 126
     },
     "metal": {
-      "train": 522,
-      "val": 64,
-      "test": 67
+      "train": 549,
+      "val": 63,
+      "test": 71
     },
     "flexible_plastic": {
-      "train": 1497,
-      "val": 187,
-      "test": 188
+      "train": 1785,
+      "val": 194,
+      "test": 259
     },
     "sanitary_ppe_waste": {
-      "train": 760,
-      "val": 95,
-      "test": 95
+      "train": 875,
+      "val": 104,
+      "test": 116
     },
     "organic": {
-      "train": 478,
-      "val": 60,
-      "test": 60
+      "train": 1455,
+      "val": 182,
+      "test": 182
     },
     "battery_ewaste": {
       "train": 1136,
-      "val": 143,
-      "test": 144
+      "val": 144,
+      "test": 143
     },
     "hazardous_medical": {
-      "train": 711,
-      "val": 83,
-      "test": 97
+      "train": 730,
+      "val": 94,
+      "test": 96
     }
   }
 }

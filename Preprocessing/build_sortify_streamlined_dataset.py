@@ -13,11 +13,13 @@ Streamlined 8-Class Taxonomy:
 
 Key Improvements:
 - Glass is completely eliminated (eradicates bottle-to-glass false positives at the root).
-- Paper & Cardboard are merged into 'paper_cardboard', unlocking 1,496 Bangladesh paper annotations.
-- 'Plastic waste' from Bangladesh is merged with 'Plastic bag' into 'flexible_plastic'.
-- Metal is reinforced with PackWISE metal lids, foil, and MedBin tweezers (+671 instances).
-- Mendeley is strictly filtered (zero glass, zero generic plastic, produce piles capped, metal balanced).
-- 80/10/10 stratified split with physical-battery grouping to guarantee zero leakage.
+- Paper & Cardboard are merged into 'paper_cardboard', unlocking clean paper & packaging annotations.
+- Taxonomical Realignment: PackWISE class 2 ('aluminium-coated-foil') remapped to 'flexible_plastic' (General waste).
+- Bangladesh 'Plastic waste' (crushed rigid cups/shards) dropped to eliminate flexible plastic attractor bias.
+- PackWISE 2x2 Quadrant Tiling: 4096px conveyor images tiled into 2048px quadrants preserving native resolution.
+- PackWISE Probe Grouping: Images grouped by video sequence / probe ID to eliminate split leakage across train/val/test.
+- 100% Authentic Organic Waste: Removed 2500 instance cap; filtered out sparse platter scenes to protect precision.
+- Zero-leakage stratified splits for physical batteries and probe sequences.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import shutil
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -62,6 +65,7 @@ class SampleRecord:
     group_id: str
     src_img_path: Path
     boxes: List[Tuple[int, float, float, float, float]]  # (target_cls, xc, yc, w, h)
+    crop_box: Tuple[int, int, int, int] | None = None  # (left, top, right, bottom) in pixel coords
     resize_to: int | None = None
 
 
@@ -89,18 +93,18 @@ def parse_yolo_boxes(label_path: Path) -> List[Tuple[int, float, float, float, f
 
 
 def collect_bangladesh_samples() -> List[SampleRecord]:
-    """Bangladesh: map all 4 classes without drop, deduplicate Roboflow base stems:
+    """Bangladesh: map classes without drop, deduplicate Roboflow base stems:
       0: Paper -> paper_cardboard (0)
       1: Plastic Bottle -> plastic_bottle (1)
       2: Plastic bag -> flexible_plastic (3)
-      3: Plastic waste -> flexible_plastic (3)
+    Note: Bangladesh class 3 ('Plastic waste' - crushed rigid cups, shards) is dropped
+    to eliminate flexible plastic attractor bias and restore balanced cross-class boundaries.
     """
     bg_dir = RAW_DIR / "bangladesh_recyclable_waste_dataset" / "data_canonical_75-15-10"
     bg_map = {
         0: 0,  # Paper -> paper_cardboard (0)
         1: 1,  # Plastic Bottle -> plastic_bottle (1)
         2: 3,  # Plastic bag -> flexible_plastic (3)
-        3: 3,  # Plastic waste -> flexible_plastic (3)
     }
     seen_stems = set()
     samples: List[SampleRecord] = []
@@ -138,8 +142,22 @@ def collect_bangladesh_samples() -> List[SampleRecord]:
     return samples
 
 
-def collect_packwise_samples() -> List[SampleRecord]:
-    """PackWISE: map packaging classes into the 8-class taxonomy and resize 4096 to 1280."""
+def collect_packwise_samples(rng: random.Random) -> Tuple[List[SampleRecord], Dict[str, str]]:
+    """PackWISE: map packaging classes into the 8-class taxonomy, tile 4096x4096 images
+    into 2x2 quadrants (2048x2048), and group by video sequence / probe ID to eliminate
+    split leakage across train, val, and test.
+
+    - Remaps class 2 (aluminium-coated-foil) from metal (2) to flexible_plastic (3).
+    - 2x2 Quadrants:
+        tl: top-left     [0, 2048, 0, 2048]     norm: [0.0..0.5, 0.0..0.5]
+        tr: top-right    [2048, 4096, 0, 2048]  norm: [0.5..1.0, 0.0..0.5]
+        bl: bottom-left  [0, 2048, 2048, 4096]  norm: [0.0..0.5, 0.5..1.0]
+        br: bottom-right [2048, 4096, 2048, 4096] norm: [0.5..1.0, 0.5..1.0]
+    - Recalculates YOLO normalized coordinates for each quadrant.
+    - Discards boxes outside the quadrant, boxes with < 20% area remaining, or slivers.
+    - Saves tiled records with prefix 'pw_tile_<quadrant>_<stem>'.
+    - Groups probe IDs ('Probe00022', etc.) with an 80/10/10 split.
+    """
     pw_dir = RAW_DIR / "Packwise" / "data"
     pw_map = {
         3: 0,   # paper-bag -> paper_cardboard (0)
@@ -151,11 +169,20 @@ def collect_packwise_samples() -> List[SampleRecord]:
         10: 2,  # metal-foil -> metal (2)
         12: 2,  # metal-lid -> metal (2)
         20: 2,  # metal-other -> metal (2)
-        2: 2,   # aluminium-coated-foil -> metal (2)
+        2: 3,   # aluminium-coated-foil -> flexible_plastic (3) (General waste)
         1: 3,   # plastic-foil/bag -> flexible_plastic (3)
         13: 4,  # tissue -> sanitary_ppe_waste (4)
         8: 7,   # blister -> hazardous_medical (7)
     }
+
+    quadrants = [
+        ("tl", (0, 0, 2048, 2048), (0.0, 0.5, 0.0, 0.5)),
+        ("tr", (2048, 0, 4096, 2048), (0.5, 1.0, 0.0, 0.5)),
+        ("bl", (0, 2048, 2048, 4096), (0.0, 0.5, 0.5, 1.0)),
+        ("br", (2048, 2048, 4096, 4096), (0.5, 1.0, 0.5, 1.0)),
+    ]
+
+    all_probes = set()
     samples: List[SampleRecord] = []
 
     for split in ("train", "val", "test"):
@@ -174,17 +201,81 @@ def collect_packwise_samples() -> List[SampleRecord]:
             if img_path is None:
                 continue
 
-            samples.append(
-                SampleRecord(
-                    source_dataset="packwise",
-                    unique_id=f"pw_{split}_{lp.stem}",
-                    group_id=f"pw_{lp.stem}",
-                    src_img_path=img_path,
-                    boxes=mapped_boxes,
-                    resize_to=1280,
+            m = re.search(r"Probe\d+", lp.stem)
+            probe_id = m.group(0) if m else lp.stem
+            all_probes.add(probe_id)
+            group_id = f"pw_{probe_id}"
+
+            for qname, crop_box, (qx0, qx1, qy0, qy1) in quadrants:
+                quad_boxes: List[Tuple[int, float, float, float, float]] = []
+                for c, xc, yc, w, h in mapped_boxes:
+                    xmin = xc - w / 2.0
+                    xmax = xc + w / 2.0
+                    ymin = yc - h / 2.0
+                    ymax = yc + h / 2.0
+
+                    ixmin = max(xmin, qx0)
+                    ixmax = min(xmax, qx1)
+                    iymin = max(ymin, qy0)
+                    iymax = min(ymax, qy1)
+
+                    iw = ixmax - ixmin
+                    ih = iymax - iymin
+                    if iw <= 0 or ih <= 0:
+                        continue
+
+                    orig_area = w * h
+                    clipped_area = iw * ih
+                    if orig_area > 0 and (clipped_area / orig_area) < 0.20:
+                        continue
+
+                    qw = qx1 - qx0
+                    qh = qy1 - qy0
+                    n_w = iw / qw
+                    n_h = ih / qh
+                    n_xc = ((ixmin + ixmax) / 2.0 - qx0) / qw
+                    n_yc = ((iymin + iymax) / 2.0 - qy0) / qh
+
+                    if n_w < 0.005 or n_h < 0.005:
+                        continue
+
+                    n_xc = max(0.0, min(1.0, n_xc))
+                    n_yc = max(0.0, min(1.0, n_yc))
+                    n_w = max(0.0, min(1.0, n_w))
+                    n_h = max(0.0, min(1.0, n_h))
+
+                    quad_boxes.append((c, n_xc, n_yc, n_w, n_h))
+
+                if not quad_boxes:
+                    continue
+
+                samples.append(
+                    SampleRecord(
+                        source_dataset="packwise",
+                        unique_id=f"pw_tile_{qname}_{lp.stem}",
+                        group_id=group_id,
+                        src_img_path=img_path,
+                        boxes=quad_boxes,
+                        crop_box=crop_box,
+                    )
                 )
-            )
-    return samples
+
+    pw_probes = sorted(all_probes)
+    rng.shuffle(pw_probes)
+    n = len(pw_probes)
+    n_val = max(1, round(n * 0.10))
+    n_test = max(1, round(n * 0.10))
+    pw_group_splits: Dict[str, str] = {}
+    for i, pid in enumerate(pw_probes):
+        gid = f"pw_{pid}"
+        if i < n_val:
+            pw_group_splits[gid] = "val"
+        elif i < n_val + n_test:
+            pw_group_splits[gid] = "test"
+        else:
+            pw_group_splits[gid] = "train"
+
+    return samples, pw_group_splits
 
 
 def collect_medbin_samples() -> List[SampleRecord]:
@@ -318,7 +409,9 @@ def collect_organic_waste_samples(rng: random.Random) -> List[SampleRecord]:
     from RAW Datasets/organic_waste_detection.
     - Deduplicates Roboflow base stems so each unique scene is represented once.
     - Maps classes 0..31 (excluding class 19 'Other-waste') to Sortify class 5 ('organic').
-    - Subsamples to ~600 base images (~2,500 instances) to balance with other classes.
+    - Excludes sparsely annotated buffet/tray scenes (e.g. video stills with 1-2 labeled
+      items amidst full food platters) to eliminate false positive precision penalties.
+    - Removes artificial 2,500 instance cap, unlocking 100% authentic organic training scenes.
     """
     ow_dir = RAW_DIR / "organic_waste_detection"
     seen_stems = set()
@@ -335,6 +428,10 @@ def collect_organic_waste_samples(rng: random.Random) -> List[SampleRecord]:
                 continue
             seen_stems.add(base_stem)
 
+            # Exclude sparsely annotated buffet / tray video sequence
+            if "Still" in base_stem or "20220209103351" in base_stem:
+                continue
+
             raw_boxes = parse_yolo_boxes(lp)
             if not raw_boxes:
                 continue
@@ -346,6 +443,11 @@ def collect_organic_waste_samples(rng: random.Random) -> List[SampleRecord]:
                 if c != 19 and not (w > 0.95 and h > 0.95)
             ]
             if not valid_boxes:
+                continue
+
+            # Exclude sparse scene slivers where total box area is negligible (< 0.5% of frame)
+            total_box_area = sum(w * h for _, _, _, w, h in valid_boxes)
+            if total_box_area < 0.005:
                 continue
 
             img_path = find_image_for_label(img_dir, lp.stem)
@@ -362,19 +464,8 @@ def collect_organic_waste_samples(rng: random.Random) -> List[SampleRecord]:
                 )
             )
 
-    rng.shuffle(samples)
-    kept_samples: List[SampleRecord] = []
-    curr_instances = 0
-    for s in samples:
-        cnt = len(s.boxes)
-        if curr_instances + cnt <= 2500:
-            kept_samples.append(s)
-            curr_instances += cnt
-        else:
-            break
-
-    kept_samples.sort(key=lambda r: r.unique_id)
-    return kept_samples
+    samples.sort(key=lambda r: r.unique_id)
+    return samples
 
 
 def collect_mendeley_metal_samples(rng: random.Random) -> List[SampleRecord]:
@@ -452,7 +543,7 @@ def assign_stratified_splits(
             splits[preassigned_groups[s.group_id]].append(s)
         else:
             cls_counts = Counter(b[0] for b in s.boxes)
-            primary_cls = sorted(cls_counts.keys())[0]
+            primary_cls = sorted(cls_counts.keys())[0] if cls_counts else 0
             strata[(s.source_dataset, primary_cls)].append(s)
 
     for key in sorted(strata.keys()):
@@ -474,16 +565,21 @@ def assign_stratified_splits(
 
 def write_sample_worker(task: Tuple[str, SampleRecord, Path, Path]) -> Tuple[str, str, int, List[int]]:
     split_name, rec, img_out_dir, lbl_out_dir = task
-    ext = rec.src_img_path.suffix.lower()
+    needs_reencode = rec.crop_box is not None or rec.resize_to is not None
+    ext = ".jpg" if needs_reencode else rec.src_img_path.suffix.lower()
     if ext not in (".jpg", ".jpeg", ".png"):
         ext = ".jpg"
     out_img_path = img_out_dir / f"{rec.unique_id}{ext}"
     out_lbl_path = lbl_out_dir / f"{rec.unique_id}.txt"
 
-    if rec.resize_to is not None and Image is not None:
+    if needs_reencode:
+        if Image is None:
+            raise RuntimeError("Pillow (PIL) is required to process and re-encode dataset images.")
         with Image.open(rec.src_img_path) as im:
             im = im.convert("RGB")
-            if im.size != (rec.resize_to, rec.resize_to):
+            if rec.crop_box is not None:
+                im = im.crop(rec.crop_box)
+            if rec.resize_to is not None and im.size != (rec.resize_to, rec.resize_to):
                 im = im.resize((rec.resize_to, rec.resize_to), Image.Resampling.BILINEAR)
             im.save(out_img_path, format="JPEG", quality=92)
     else:
@@ -498,9 +594,13 @@ def write_sample_worker(task: Tuple[str, SampleRecord, Path, Path]) -> Tuple[str
 
 
 def write_data_yaml(dataset_dir: Path) -> None:
+    try:
+        rel_path = dataset_dir.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        rel_path = dataset_dir.resolve().as_posix()
     lines = [
         "# Sortify Streamlined 8-Class YOLOv11 Dataset",
-        "path: .",
+        f"path: {rel_path}",
         "train: images/train",
         "val: images/val",
         "test: images/test",
@@ -522,7 +622,7 @@ def main() -> None:
 
     print("Collecting and mapping samples across raw datasets...")
     bg_samples = collect_bangladesh_samples()
-    pw_samples = collect_packwise_samples()
+    pw_samples, pw_group_splits = collect_packwise_samples(rng)
     mb_samples = collect_medbin_samples()
     rb_samples, rb_group_splits = collect_recybat24_samples()
     ow_samples = collect_organic_waste_samples(rng)
@@ -531,15 +631,16 @@ def main() -> None:
     all_samples = bg_samples + pw_samples + mb_samples + rb_samples + ow_samples + md_samples
     print(
         f"Collected {len(all_samples):,} curated images:\n"
-        f"  Bangladesh: {len(bg_samples):,}\n"
-        f"  PackWISE: {len(pw_samples):,}\n"
+        f"  Bangladesh (clean paper, bottle, bag): {len(bg_samples):,}\n"
+        f"  PackWISE (2x2 quadrants & probe-grouped): {len(pw_samples):,}\n"
         f"  MedBin (clean non-glass): {len(mb_samples):,}\n"
-        f"  RecyBat24: {len(rb_samples):,}\n"
-        f"  Organic Waste (peels/scraps/leftovers): {len(ow_samples):,}\n"
+        f"  RecyBat24 (110 physical batteries): {len(rb_samples):,}\n"
+        f"  Organic Waste (100% authentic real food scraps): {len(ow_samples):,}\n"
         f"  Mendeley (metal on natural bgs only): {len(md_samples):,}"
     )
 
-    splits = assign_stratified_splits(all_samples, rb_group_splits, rng)
+    preassigned_groups = {**rb_group_splits, **pw_group_splits}
+    splits = assign_stratified_splits(all_samples, preassigned_groups, rng)
 
     # Clean and re-initialize output directories
     OUT_DIR.mkdir(parents=True, exist_ok=True)
