@@ -101,8 +101,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--workers",
         type=int,
-        default=4,
-        help="Dataloader worker threads (default: 4)",
+        default=0 if sys.platform.startswith("win") else 4,
+        help="Dataloader worker threads (default: 0 on Windows to prevent multiprocessing spawn crashes, 4 on POSIX)",
     )
     parser.add_argument(
         "--patience",
