@@ -48,11 +48,11 @@ def get_yolo11_model():
 )
 async def predict_waste(
     file: UploadFile = File(..., description="Image file (JPG, PNG, WebP)"),
-    conf: float = Form(
-        default=settings.DEFAULT_CONF_THRESHOLD,
+    conf: Optional[float] = Form(
+        default=None,
         ge=0.01,
         le=1.0,
-        description="Confidence threshold (0.01 to 1.0)",
+        description="Confidence threshold (0.01 to 1.0, default: calibrated per-class)",
     ),
     iou: float = Form(
         default=settings.DEFAULT_IOU_THRESHOLD,
@@ -126,10 +126,11 @@ async def predict_waste(
 )
 async def annotate_image(
     file: UploadFile = File(..., description="Image file"),
-    conf: float = Form(
-        default=settings.DEFAULT_CONF_THRESHOLD,
+    conf: Optional[float] = Form(
+        default=None,
         ge=0.01,
         le=1.0,
+        description="Confidence threshold (0.01 to 1.0, default: calibrated per-class)",
     ),
     iou: float = Form(
         default=settings.DEFAULT_IOU_THRESHOLD,
@@ -179,7 +180,12 @@ async def annotate_image(
 )
 async def predict_batch(
     files: List[UploadFile] = File(..., description="Multiple image files"),
-    conf: float = Form(default=settings.DEFAULT_CONF_THRESHOLD, ge=0.01, le=1.0),
+    conf: Optional[float] = Form(
+        default=None,
+        ge=0.01,
+        le=1.0,
+        description="Confidence threshold (0.01 to 1.0, default: calibrated per-class)",
+    ),
     iou: float = Form(default=settings.DEFAULT_IOU_THRESHOLD, ge=0.01, le=1.0),
     imgsz: int = Form(default=settings.DEFAULT_IMGSZ, ge=160, le=1280),
 ) -> BatchPredictionResponse:

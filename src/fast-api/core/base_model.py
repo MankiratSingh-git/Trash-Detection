@@ -39,7 +39,7 @@ class BaseVisionModel(ABC):
     def predict(
         self,
         image: Union[np.ndarray, Image.Image, bytes],
-        conf: float = 0.25,
+        conf: Optional[float] = None,
         iou: float = 0.45,
         imgsz: int = 640,
         return_image: bool = False,
@@ -64,7 +64,7 @@ class BaseVisionModel(ABC):
     def annotate(
         self,
         image: Union[np.ndarray, Image.Image, bytes],
-        conf: float = 0.25,
+        conf: Optional[float] = None,
         iou: float = 0.45,
         imgsz: int = 640,
         **kwargs: Any,
