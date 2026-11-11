@@ -19,7 +19,20 @@ model_registry.register(
     ),
 )
 
-# 2. Explicit Streamlined 8-Class Model
+# 2. Explicit Streamlined 8-Class Model (v3 Generalization)
+if settings.GENERALIZATION_V3_WEIGHTS.is_file():
+    model_registry.register(
+        "yolov11s_8cls_v3",
+        lambda: YOLOv11Model(
+            name="yolov11s_8cls_v3",
+            version="11.0.0-8cls-v3",
+            description="YOLOv11s Generalization v3 (8-Class Negative-Supervised Detector)",
+            weights_path=settings.GENERALIZATION_V3_WEIGHTS,
+            mapping_path=settings.GENERALIZATION_V3_MAPPING,
+        ),
+    )
+
+# 3. Explicit Streamlined 8-Class Model (v1)
 model_registry.register(
     "yolov11s_8cls",
     lambda: YOLOv11Model(

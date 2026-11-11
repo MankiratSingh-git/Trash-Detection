@@ -30,6 +30,13 @@ class Settings:
         PROJECT_ROOT / "YOLOv11" / "model" / "sortify_class_mapping.json"
     )
 
+    GENERALIZATION_V3_WEIGHTS: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_generalization_v3" / "weights" / "best.pt"
+    )
+    GENERALIZATION_V3_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_generalization_v3" / "sortify_class_mapping.json"
+    )
+
     STREAMLINED_YOLO11S_WEIGHTS: Path = (
         PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_streamlined" / "weights" / "best.pt"
     )
