@@ -189,21 +189,33 @@ class YOLOv11Model(BaseVisionModel):
     def predict(
         self,
         image: Union[np.ndarray, Image.Image, bytes],
-        conf: float = 0.25,
+        conf: Optional[float] = None,
         iou: float = 0.45,
         imgsz: int = 640,
         return_image: bool = False,
         **kwargs: Any,
     ) -> PredictionResponse:
-        """Run YOLOv11 waste detection on an image."""
+        """Run YOLOv11 waste detection on an image with calibrated confidence gating."""
         self._ensure_loaded()
         cv_img, orig_width, orig_height = self._prepare_image(image)
 
         start_time = time.perf_counter()
 
+        # Resolve lowest class threshold so model doesn't truncate candidate detections early
+        min_class_conf = (
+            min(settings.CLASS_MIN_CONFIDENCE.values())
+            if settings.CLASS_MIN_CONFIDENCE
+            else settings.DEFAULT_CONF_THRESHOLD
+        )
+        base_yolo_conf = (
+            min(conf, min_class_conf)
+            if conf is not None
+            else min(settings.DEFAULT_CONF_THRESHOLD, min_class_conf)
+        )
+
         predict_kwargs: Dict[str, Any] = {
             "source": cv_img,
-            "conf": conf,
+            "conf": base_yolo_conf,
             "iou": iou,
             "imgsz": imgsz,
             "verbose": False,
@@ -229,6 +241,22 @@ class YOLOv11Model(BaseVisionModel):
                 for box_coord, score, cls_id in zip(xyxy, confs, classes):
                     cid = int(cls_id)
                     score_val = float(score)
+
+                    class_name = self._class_names.get(cid, f"class_{cid}")
+
+                    # Class-specific confidence calibration:
+                    # Prunes low-confidence noise & hallucinations on complex/natural backgrounds
+                    class_min_conf = settings.CLASS_MIN_CONFIDENCE.get(
+                        class_name, settings.DEFAULT_CONF_THRESHOLD
+                    )
+                    effective_threshold = (
+                        max(conf, class_min_conf)
+                        if conf is not None
+                        else class_min_conf
+                    )
+                    if score_val < effective_threshold:
+                        continue
+
                     x1, y1, x2, y2 = [float(v) for v in box_coord]
 
                     # Clamp pixel bounds
@@ -312,7 +340,7 @@ class YOLOv11Model(BaseVisionModel):
     def annotate(
         self,
         image: Union[np.ndarray, Image.Image, bytes],
-        conf: float = 0.25,
+        conf: Optional[float] = None,
         iou: float = 0.45,
         imgsz: int = 640,
         **kwargs: Any,

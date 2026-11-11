@@ -530,6 +530,65 @@ def collect_mendeley_metal_samples(rng: random.Random) -> List[SampleRecord]:
     return kept
 
 
+def collect_negative_background_samples() -> List[SampleRecord]:
+    """Pillar 1: Collect ~500 clean negative background images (empty tables, desks,
+    floors, sandy beaches, park grass, roads, sky/ocean horizons).
+    These contain NO objects (empty YOLO .txt labels). Ultralytics YOLO uses them
+    as negative background samples (~7% of dataset) to suppress false positives and
+    hallucinated boxes on empty landscapes and surfaces.
+    """
+    bg_dir = RAW_DIR / "negative_backgrounds"
+    samples: List[SampleRecord] = []
+    if not bg_dir.is_dir():
+        return samples
+
+    for p in sorted(bg_dir.glob("*.jpg")):
+        samples.append(
+            SampleRecord(
+                source_dataset="negative_background",
+                unique_id=p.stem,
+                group_id=p.stem,
+                src_img_path=p,
+                boxes=[],
+            )
+        )
+    return samples
+
+
+def collect_taco_samples() -> List[SampleRecord]:
+    """Pillar 2: Real Everyday Litter Data (TACO - Trash Annotations in Context).
+    Ingests clean everyday waste instances photographed outdoors on natural backgrounds:
+      - plastic_bottle (1): clear and colored beverage bottles on sand, grass, and tables.
+      - metal (2): crushed soda and food cans on asphalt, gravel, and streets.
+      - paper_cardboard (0): cartons, crumpled paper, boxes, and cups on floors and desks.
+    """
+    curated_file = RAW_DIR / "TACO" / "curated_taco_samples.json"
+    if not curated_file.is_file():
+        return []
+
+    with open(curated_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    samples: List[SampleRecord] = []
+    for item in data:
+        img_p = ROOT / item["image_path"]
+        if not img_p.is_file():
+            continue
+        boxes = [(int(b[0]), float(b[1]), float(b[2]), float(b[3]), float(b[4])) for b in item["boxes"]]
+        if not boxes:
+            continue
+        samples.append(
+            SampleRecord(
+                source_dataset="taco",
+                unique_id=item["unique_id"],
+                group_id=item["unique_id"],
+                src_img_path=img_p,
+                boxes=boxes,
+            )
+        )
+    return samples
+
+
 def assign_stratified_splits(
     samples: List[SampleRecord],
     preassigned_groups: Dict[str, str],
@@ -537,14 +596,29 @@ def assign_stratified_splits(
 ) -> Dict[str, List[SampleRecord]]:
     splits: Dict[str, List[SampleRecord]] = {"train": [], "val": [], "test": []}
     strata: Dict[Tuple[str, int], List[SampleRecord]] = defaultdict(list)
+    neg_bg_samples: List[SampleRecord] = []
 
     for s in samples:
         if s.group_id in preassigned_groups:
             splits[preassigned_groups[s.group_id]].append(s)
+        elif s.source_dataset == "negative_background":
+            neg_bg_samples.append(s)
         else:
             cls_counts = Counter(b[0] for b in s.boxes)
             primary_cls = sorted(cls_counts.keys())[0] if cls_counts else 0
             strata[(s.source_dataset, primary_cls)].append(s)
+
+    # Pillar 1: Place negative backgrounds into train (~85%) and val (~15%)
+    if neg_bg_samples:
+        bucket = list(neg_bg_samples)
+        rng.shuffle(bucket)
+        n = len(bucket)
+        n_val = max(1, round(n * 0.15))
+        for i, s in enumerate(bucket):
+            if i < n_val:
+                splits["val"].append(s)
+            else:
+                splits["train"].append(s)
 
     for key in sorted(strata.keys()):
         bucket = list(strata[key])
@@ -589,7 +663,10 @@ def write_sample_worker(task: Tuple[str, SampleRecord, Path, Path]) -> Tuple[str
         f"{c} {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}"
         for c, xc, yc, w, h in rec.boxes
     ]
-    out_lbl_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+    if label_lines:
+        out_lbl_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+    else:
+        out_lbl_path.write_text("", encoding="utf-8")
     return split_name, rec.source_dataset, len(rec.boxes), [b[0] for b in rec.boxes]
 
 
@@ -627,8 +704,19 @@ def main() -> None:
     rb_samples, rb_group_splits = collect_recybat24_samples()
     ow_samples = collect_organic_waste_samples(rng)
     md_samples = collect_mendeley_metal_samples(rng)
+    neg_samples = collect_negative_background_samples()
+    taco_samples = collect_taco_samples()
 
-    all_samples = bg_samples + pw_samples + mb_samples + rb_samples + ow_samples + md_samples
+    all_samples = (
+        bg_samples
+        + pw_samples
+        + mb_samples
+        + rb_samples
+        + ow_samples
+        + md_samples
+        + neg_samples
+        + taco_samples
+    )
     print(
         f"Collected {len(all_samples):,} curated images:\n"
         f"  Bangladesh (clean paper, bottle, bag): {len(bg_samples):,}\n"
@@ -636,7 +724,9 @@ def main() -> None:
         f"  MedBin (clean non-glass): {len(mb_samples):,}\n"
         f"  RecyBat24 (110 physical batteries): {len(rb_samples):,}\n"
         f"  Organic Waste (100% authentic real food scraps): {len(ow_samples):,}\n"
-        f"  Mendeley (metal on natural bgs only): {len(md_samples):,}"
+        f"  Mendeley (metal on natural bgs only): {len(md_samples):,}\n"
+        f"  Negative Backgrounds (empty scenes, no annotations): {len(neg_samples):,}\n"
+        f"  TACO (everyday bottles, cans, paper on natural bgs): {len(taco_samples):,}"
     )
 
     preassigned_groups = {**rb_group_splits, **pw_group_splits}

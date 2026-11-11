@@ -107,8 +107,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--patience",
         type=int,
-        default=25,
-        help="Early-stopping patience in epochs without validation mAP improvement (default: 25)",
+        default=8,
+        help="Early-stopping patience in epochs without validation mAP improvement (default: 8)",
     )
     parser.add_argument(
         "--cache",
@@ -143,8 +143,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--hsv-s",
         type=float,
-        default=0.80,
-        help="HSV-Saturation augmentation fraction (default: 0.80, allows desaturation to promote shape learning)",
+        default=0.90,
+        help="HSV-Saturation augmentation fraction (default: 0.90, allows desaturation to promote shape learning)",
     )
     parser.add_argument(
         "--hsv-v",
@@ -155,8 +155,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--erasing",
         type=float,
-        default=0.25,
-        help="Random erasing/cutout probability (default: 0.25, prevents keying purely on specular glints)",
+        default=0.40,
+        help="Random erasing/cutout probability (default: 0.40, pastes random patches over bright specular reflection highlights)",
+    )
+    parser.add_argument(
+        "--bgr",
+        type=float,
+        default=0.15,
+        help="BGR channel-flip augmentation probability (default: 0.15, ensures reflection/color-invariance)",
     )
     parser.add_argument(
         "--mixup",
@@ -429,6 +435,7 @@ def main() -> None:
         hsv_s=args.hsv_s,
         hsv_v=args.hsv_v,
         erasing=args.erasing,
+        bgr=args.bgr,
         plots=True,
         save=True,
         save_period=args.save_period,

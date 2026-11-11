@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 # Determine project root directory (Sortify-ML)
 # src/fast-api/core/config.py -> parents[3] is project root
@@ -75,10 +75,22 @@ class Settings:
         return self.DEPLOYED_YOLO11_WEIGHTS
 
     # Inference defaults
-    DEFAULT_CONF_THRESHOLD: float = float(os.getenv("DEFAULT_CONF_THRESHOLD", "0.25"))
+    DEFAULT_CONF_THRESHOLD: float = float(os.getenv("DEFAULT_CONF_THRESHOLD", "0.50"))
     DEFAULT_IOU_THRESHOLD: float = float(os.getenv("DEFAULT_IOU_THRESHOLD", "0.45"))
     DEFAULT_IMGSZ: int = int(os.getenv("DEFAULT_IMGSZ", "640"))
     DEFAULT_DEVICE: str = os.getenv("DEVICE", "")  # Empty string allows auto-detection (cuda/cpu)
+
+    # Class-specific confidence calibration to suppress out-of-distribution false positives
+    CLASS_MIN_CONFIDENCE: Dict[str, float] = {
+        "metal": 0.55,               # Rejects specular glints and landscape horizon noise
+        "organic": 0.55,             # Rejects colorful branded product labels
+        "sanitary_ppe_waste": 0.60,  # Rejects clear bottles / crumpled white papers
+        "flexible_plastic": 0.50,
+        "paper_cardboard": 0.50,
+        "plastic_bottle": 0.45,
+        "battery_ewaste": 0.50,
+        "hazardous_medical": 0.50,
+    }
 
     # Server settings
     HOST: str = os.getenv("HOST", "0.0.0.0")
