@@ -67,8 +67,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default="weights/pretrained/yolo11m.pt",
-        help="YOLO11 checkpoint or architecture YAML (default: weights/pretrained/yolo11m.pt)",
+        default="weights/pretrained/yolo11s.pt",
+        help="YOLO11 checkpoint or architecture YAML (default: weights/pretrained/yolo11s.pt)",
     )
     parser.add_argument(
         "--data",
@@ -84,14 +84,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--imgsz",
         type=int,
-        default=800,
-        help="Square input image resolution (default: 800)",
+        default=640,
+        help="Square input image resolution (default: 640)",
     )
     parser.add_argument(
         "--batch",
         type=int,
-        default=12,
-        help="Batch size; use 12 for standard GPUs or -1 for Ultralytics AutoBatch (default: 12)",
+        default=16,
+        help="Batch size; use 16 for standard GPUs or -1 for Ultralytics AutoBatch (default: 16)",
     )
     parser.add_argument(
         "--device",
@@ -124,8 +124,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--name",
-        default="sortify_yolo11m_8cls_v2",
-        help="Run folder name under YOLOv11/runs (default: sortify_yolo11m_8cls_v2)",
+        default="sortify_yolo11s_8cls_v2",
+        help="Run folder name under YOLOv11/runs (default: sortify_yolo11s_8cls_v2)",
     )
     # Calibrated multi-domain & color-invariance augmentations
     parser.add_argument(
