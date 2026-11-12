@@ -36,14 +36,17 @@ src/
 
 ## 🎯 Available Models & Options
 
-The backend supports multiple model checkpoints registered in the ModelRegistry:
+The backend supports multiple model checkpoints registered in the ModelRegistry with explicit dataset provenance:
 
-| Model ID | Architecture | Classes | Checkpoint Path | Description |
-|---|---|---|---|---|
-| **`yolov11`** *(Default)* | YOLO11s | **8 classes** | `YOLOv11/model/best.pt` | Production deployed streamlined model |
-| **`yolov11s_8cls`** | YOLO11s | **8 classes** | `YOLOv11/runs/sortify_yolo11s_8cls_streamlined/weights/best.pt` | Streamlined 8-class detector |
-| **`yolov11s_10cls`** | YOLO11s | **10 classes**| `YOLOv11/runs/sortify_yolo11s_10cls/weights/best.pt` | Legacy 10-class detector |
-| **`yolov11m_calibrated`**| YOLO11m | **10 classes**| `YOLOv11/runs/sortify_yolo11m_calibrated_aug/weights/best.pt` | Calibrated medium 10-class detector |
+| Model ID | Architecture | Classes | Checkpoint Path | Dataset Description |
+|---|---|:---:|---|---|
+| **`yolov11`** *(Default)* | YOLO11s | **8 classes** | `YOLOv11/model/best.pt` | **Production Champion** (v3 Generalization Dataset with Hard Negatives) |
+| **`yolo11s_8cls_v3_generalization`** | YOLO11s | **8 classes** | `weights/yolo11s_8cls_v3_generalization.pt` | v3 Generalization Dataset (8 classes + Hard Negatives) |
+| **`yolo11s_8cls_v2_curated`** | YOLO11s | **8 classes** | `weights/yolo11s_8cls_v2_curated.pt` | v2 Curated Dataset (8 classes) |
+| **`yolo11s_8cls_real_organic`** | YOLO11s | **8 classes** | `weights/yolo11s_8cls_real_organic.pt` | Real Organic Augmentation Dataset (8 classes) |
+| **`yolo11s_8cls_v1_streamlined_old_dataset`** | YOLO11s | **8 classes** | `weights/yolo11s_8cls_v1_streamlined_old_dataset.pt` | Old 8-Class Streamlined Dataset |
+| **`yolo11s_10cls_legacy_old_dataset`** | YOLO11s | **10 classes**| `weights/yolo11s_10cls_legacy_old_dataset.pt` | Old 10-Class Legacy Dataset |
+| **`yolo11m_10cls_calibrated_old_dataset`** | YOLO11m | **10 classes**| `weights/yolo11m_10cls_calibrated_old_dataset.pt` | Old 10-Class Legacy Dataset (Medium architecture) |
 
 ---
 

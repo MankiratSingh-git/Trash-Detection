@@ -31,28 +31,42 @@ class Settings:
     )
 
     GENERALIZATION_V3_WEIGHTS: Path = (
-        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_generalization_v3" / "weights" / "best.pt"
+        PROJECT_ROOT / "weights" / "yolo11s_8cls_v3_generalization.pt"
     )
     GENERALIZATION_V3_MAPPING: Path = (
         PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_generalization_v3" / "sortify_class_mapping.json"
     )
 
+    CURATED_V2_WEIGHTS: Path = (
+        PROJECT_ROOT / "weights" / "yolo11s_8cls_v2_curated.pt"
+    )
+    CURATED_V2_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_v2" / "sortify_class_mapping.json"
+    )
+
+    REAL_ORGANIC_WEIGHTS: Path = (
+        PROJECT_ROOT / "weights" / "yolo11s_8cls_real_organic.pt"
+    )
+    REAL_ORGANIC_MAPPING: Path = (
+        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_real_organic" / "sortify_class_mapping.json"
+    )
+
     STREAMLINED_YOLO11S_WEIGHTS: Path = (
-        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_streamlined" / "weights" / "best.pt"
+        PROJECT_ROOT / "weights" / "yolo11s_8cls_v1_streamlined_old_dataset.pt"
     )
     STREAMLINED_YOLO11S_MAPPING: Path = (
         PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_8cls_streamlined" / "sortify_class_mapping.json"
     )
 
     LEGACY_YOLO11S_10CLS_WEIGHTS: Path = (
-        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_10cls" / "weights" / "best.pt"
+        PROJECT_ROOT / "weights" / "yolo11s_10cls_legacy_old_dataset.pt"
     )
     LEGACY_YOLO11S_10CLS_MAPPING: Path = (
         PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11s_10cls" / "sortify_class_mapping.json"
     )
 
     CALIBRATED_YOLO11M_WEIGHTS: Path = (
-        PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11m_calibrated_aug" / "weights" / "best.pt"
+        PROJECT_ROOT / "weights" / "yolo11m_10cls_calibrated_old_dataset.pt"
     )
     CALIBRATED_YOLO11M_MAPPING: Path = (
         PROJECT_ROOT / "YOLOv11" / "runs" / "sortify_yolo11m_calibrated_aug" / "sortify_class_mapping.json"

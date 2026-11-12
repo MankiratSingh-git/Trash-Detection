@@ -1,6 +1,12 @@
-# Sortify Unified YOLOv11 Dataset — Final Build Summary & Verification Report
+# Sortify Unified YOLOv11 Dataset — Legacy 10-Class Build Summary & Verification Report
 
-## 1. Dataset Overview & YOLOv11 Compatibility Status
+> [!NOTE]
+> **Dataset Status:** This report documents the **Old 10-Class Legacy Dataset** (7,355 images, 21,886 boxes).
+> For the modern production dataset, see:
+> - **Active Production Dataset:** [v3 Generalization Dataset (`Dataset/`)](file:///c:/Code/Sortify-ML/Dataset) (9,836 images, 24,720 boxes, 505 negative backgrounds)
+> - **Comprehensive Comparison:** [MODEL_BENCHMARK_AND_COMPARISON.md](file:///c:/Code/Sortify-ML/Summaries/Results/MODEL_BENCHMARK_AND_COMPARISON.md)
+
+## 1. Dataset Overview & YOLOv11 Compatibility Status (Legacy 10-Class)
 
 - **Dataset Location:** [`Dataset/`](file:///c:/Code/Sortify-ML/Dataset)
 - **Configuration File:** [`Dataset/data.yaml`](file:///c:/Code/Sortify-ML/Dataset/data.yaml)
