@@ -2,41 +2,73 @@
   "0": {
     "name": "paper_cardboard",
     "category": "Recyclable",
-    "guidance": "Clean dry paper, box, or cardboard recycling bin"
+    "display_name": "Paper & Cardboard",
+    "item_id": "paper-cardboard",
+    "guidance": "Clean dry paper, boxes, and cardboard packaging in paper recycling bin",
+    "examples": ["Cardboard box", "Newspaper", "Office paper", "Carton", "Paper bag"],
+    "sub_items": ["box", "paper", "pizza-box"]
   },
   "1": {
     "name": "plastic_bottle",
     "category": "Recyclable",
-    "guidance": "Empty/crush rigid plastic bottle and cap for recycling"
+    "display_name": "Plastic Bottle & Container",
+    "item_id": "plastic-bottle",
+    "guidance": "Empty and crush rigid plastic bottles, jugs, and tubs for recycling",
+    "examples": ["Water bottle", "Milk jug", "Detergent container", "Yogurt tub"],
+    "sub_items": ["bottle", "detergent-jug", "plastic-tub"]
   },
   "2": {
     "name": "metal",
     "category": "Recyclable",
-    "guidance": "Empty metal can, foil, or lid and place in metal recycling"
+    "display_name": "Metal Can & Packaging",
+    "item_id": "metal",
+    "guidance": "Empty drink cans, food tins, clean scrunched foil in metal recycling",
+    "examples": ["Drink can", "Food tin", "Aluminium foil", "Aerosol can"],
+    "sub_items": ["can", "food-tin", "aluminium-foil", "aerosol-can"]
   },
   "3": {
     "name": "flexible_plastic",
     "category": "General waste",
-    "guidance": "General waste bin (or dedicated soft-plastic film drop-off)"
+    "display_name": "Flexible Plastic Packaging",
+    "item_id": "flexible-plastic",
+    "guidance": "General waste bin (or designated supermarket soft-plastic collection point)",
+    "examples": ["Snack wrapper", "Plastic shopping bag", "Bubble wrap", "Cling film", "Pouch"],
+    "sub_items": ["wrapper", "plastic-bag", "bubble-wrap", "cling-film", "squeeze-pouch"]
   },
   "4": {
     "name": "sanitary_ppe_waste",
     "category": "General waste",
-    "guidance": "Seal masks, gloves, tissues, and dressings in general waste"
+    "display_name": "Sanitary & PPE Waste",
+    "item_id": "sanitary-ppe",
+    "guidance": "Seal disposable masks, gloves, tissues, and wipes securely in general waste",
+    "examples": ["Face mask", "Used tissue", "Cleaning wipe", "Disposable gloves"],
+    "sub_items": ["tissue", "face-mask", "wet-wipes", "rubber-gloves"]
   },
   "5": {
     "name": "organic",
     "category": "Organic",
-    "guidance": "Compost or biodegradable organic waste bin"
+    "display_name": "Organic Waste",
+    "item_id": "organic-waste",
+    "guidance": "Compost or curbside green-lid FOGO organic waste bin",
+    "examples": ["Vegetable scraps", "Banana peel", "Coffee grounds", "Garden leaves"],
+    "sub_items": ["scraps", "banana", "coffee-grounds", "leaves"]
   },
   "6": {
     "name": "battery_ewaste",
     "category": "E-waste",
-    "guidance": "Never bin; take to battery / e-waste collection point"
+    "display_name": "Battery & E-waste",
+    "item_id": "battery-ewaste",
+    "guidance": "Never bin; tape terminals and bring to battery or e-waste collection depot",
+    "examples": ["Household battery", "Mobile phone", "Charger cable", "Headphones", "Vape"],
+    "sub_items": ["battery", "mobile-phone", "charger", "headphones", "vape"]
   },
   "7": {
     "name": "hazardous_medical",
     "category": "Hazardous",
-    "guidance": "Sharps / hazardous clinical or pharmaceutical disposal container"
+    "display_name": "Hazardous Medical Waste",
+    "item_id": "hazardous-medical",
+    "guidance": "Drop sharps into puncture-proof container; return expired pills to pharmacy",
+    "examples": ["Syringe & needle", "Expired medicine", "Blister pack", "Clinical dressing"],
+    "sub_items": ["medical-waste", "medicine", "blister-pack"]
   }
 }

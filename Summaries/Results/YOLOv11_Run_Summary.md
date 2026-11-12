@@ -70,13 +70,13 @@ Held-out evaluation metrics across all 7 trained model checkpoints:
 
 ## 4. Production Mapping to Sortify 5 Major Categories
 
-| Model Class ID | Model Class Name | Sortify App Disposal Category | Default Catalog Item | Mobile UI Icon |
-| :---: | :--- | :--- | :--- | :---: |
-| **`0`** | `paper_cardboard` | **Recyclable** | `box` (Cardboard Box) | `recycle` |
-| **`1`** | `plastic_bottle` | **Recyclable** | `bottle` (Plastic Bottle) | `recycle` |
-| **`2`** | `metal` | **Recyclable** | `can` (Metal Can / Tin) | `recycle` |
-| **`3`** | `flexible_plastic` | **General waste** | `plastic-bag` (Plastic Bag) | `trash` |
-| **`4`** | `sanitary_ppe_waste` | **General waste** | `tissue` (Sanitary Tissue) | `trash` |
-| **`5`** | `organic` | **Organic** | `scraps` (Food Scraps) | `leaf` |
-| **`6`** | `battery_ewaste` | **E-waste** | `battery` (Household Battery) | `plug` |
-| **`7`** | `hazardous_medical`| **Hazardous** | `medical-waste` (Medical Waste) | `shield` |
+| Model Class ID | Model Class Name | Sortify App Disposal Category | Primary Catalog Class Item | Key Sub-Items & Examples | Mobile UI Icon |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **`0`** | `paper_cardboard` | **Recyclable** | `paper-cardboard` (Paper & Cardboard) | Cardboard boxes, newspaper, office paper, clean cartons | `recycle` |
+| **`1`** | `plastic_bottle` | **Recyclable** | `plastic-bottle` (Plastic Bottle & Container) | Drink bottles, detergent/milk jugs, rigid tubs | `recycle` |
+| **`2`** | `metal` | **Recyclable** | `metal` (Metal Can & Packaging) | Drink cans, steel food tins, clean foil balls, empty aerosols | `recycle` |
+| **`3`** | `flexible_plastic` | **General waste** | `flexible-plastic` (Flexible Plastic Packaging) | Snack wrappers, grocery bags, bubble wrap, cling film, pouches | `trash` |
+| **`4`** | `sanitary_ppe_waste` | **General waste** | `sanitary-ppe` (Sanitary & PPE Waste) | Disposable masks, facial tissues, wet wipes, rubber gloves | `trash` |
+| **`5`** | `organic` | **Organic** | `organic-waste` (Organic Waste) | Food scraps, banana peels, coffee grounds, garden leaves | `leaf` |
+| **`6`** | `battery_ewaste` | **E-waste** | `battery-ewaste` (Battery & E-waste) | Household batteries, old phones, chargers, headphones, vapes | `plug` |
+| **`7`** | `hazardous_medical`| **Hazardous** | `hazardous-medical` (Hazardous Medical Waste) | Syringes/needles, expired medicines, blister packs | `shield` |
